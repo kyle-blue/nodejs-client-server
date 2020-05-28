@@ -1,0 +1,71 @@
+{
+    "env": {
+        "es6": true,
+        "browser": false
+    },
+    "extends": [
+        "airbnb-base",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
+    "globals": {
+        "Atomics": "readonly",
+        "SharedArrayBuffer": "readonly"
+    },
+    "parserOptions": {
+        "ecmaVersion": 2018
+    },
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "rules": {
+        "semi": [
+            "warn",
+            "always"
+        ],
+        "quotes": [
+            "warn",
+            "double"
+        ],
+        "space-before-function-paren": "off",
+        "indent": [
+            "warn",
+            4
+        ],
+        "prefer-const": "off",
+        "lines-between-class-members": "off",
+        "spaced-comment": "off",
+        "no-underscore-dangle": "off",
+        "strict": "off",
+        "import/newline-after-import": "off",
+        "import/no-unresolved": "off",
+        "import/extensions": "off",
+        "linebreak-style": "off",
+        "no-console": "off",
+        "no-multiple-empty-lines": [
+            "warn",
+            {
+                "max": 2,
+                "maxEOF": 1
+            }
+        ],
+        "no-undef": "off",
+        "no-unused-expressions": "warn",
+        "class-methods-use-this": "off",
+        "no-plusplus": "off",
+        "radix": "off",
+        "no-param-reassign": "off",
+        "@typescript-eslint/explicit-member-accessibility": "off",
+        "@typescript-eslint/no-inferrable-types": "warn",
+        "@typescript-eslint/no-var-requires": "off",
+        "@typescript-eslint/ban-ts-ignore": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/explicit-function-return-type": [
+            "warn",
+            {
+                "allowExpressions": true
+            }
+        ]
+    }
+}

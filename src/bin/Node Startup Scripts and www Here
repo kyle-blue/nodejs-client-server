@@ -1,0 +1,16 @@
+www file function (in order):
+    Requires app.js which sets up the server
+        const app = require("../app");
+        
+    Executes any startup scripts
+
+    Setup default env variables (my own addition)
+
+    Uses the imported app to creates the httpServer (or express server) after configured:
+        var server = http.createServer(app); //(or could just use app.listen())
+
+    Also sets the port:
+        server.listen(port);
+
+    Also sets the functions to be called if there is an error while starting the server:
+        server.on('error', onError);

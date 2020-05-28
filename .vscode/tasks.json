@@ -1,0 +1,104 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "install",
+            "problemMatcher": []
+        },
+        {
+            "label": "Launch Gulp",
+            "type": "process",
+            "group": "build",
+            "command": "yarn",
+            "args": [ "gulp" ],
+            "isBackground": false,
+            "presentation": {
+                "echo": false,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
+        },
+        {
+            "label": "Compile SASS",
+            "type": "process",
+            "group": "build",
+            "command": "node-sass",
+            "args": [
+                {
+                    "quoting": "strong",
+                    "value": "${file}"
+                },
+                {
+                    "quoting": "strong",
+                    "value": "${fileDirname}/../css/${fileBasenameNoExtension}.css"
+                }
+            ],
+            "problemMatcher": "$node-sass",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
+        },
+        {
+            "label": "Compile TypeScript",
+            "type": "process",
+            "group": "build",
+            "command": "babel",
+            "args": [
+                {
+                    "quoting": "strong",
+                    "value": "${file}"
+                },
+                {
+                    "value": "-o"
+                },
+                {
+                    "quoting": "strong",
+                    "value": "${fileDirname}/${fileBasenameNoExtension}.js"
+                }
+            ],
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            }
+        },
+        {
+            "label": "Compile TypeScript TSC",
+            "type": "process",
+            "group": "build",
+            "command": "tsc",
+            "args": [
+                {
+                    "quoting": "strong",
+                    "value": "${file}"
+                }
+            ],
+            "isBackground": true,
+            "problemMatcher": "$tsc",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            }
+        }
+    ]
+}
