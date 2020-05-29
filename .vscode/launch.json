@@ -20,8 +20,6 @@
             // "localRoot": "${workspaceFolder}/src",
             // "remoteRoot": "${workspaceFolder}/dist"
         },
-
-
         {
             "type": "node",
             "request": "attach",
@@ -30,8 +28,10 @@
             "address": "0.0.0.0",
             "port": 25585,
             "sourceMaps": true,
-            "localRoot": "${workspaceFolder}",
-            "remoteRoot": "/app"
+            "localRoot": "${workspaceFolder}/src",
+            "remoteRoot": "${workspaceFolder}/dist"
+            // "localRoot": "${workspaceFolder}/dist",
+            // "remoteRoot": "/app"
         },
     ]
 }

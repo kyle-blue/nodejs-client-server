@@ -1,5 +1,5 @@
-class Socket {
-    public disconnect() {}
+interface Socket {
+    disconnect: () => void;
 }
 
 export default Socket;

@@ -1,11 +1,10 @@
 import { Request as ZmqRequest } from "zeromq";
 import Socket from "./Socket";
 
-class Requester extends Socket {
+class Requester implements Socket {
     socket: ZmqRequest;
 
     constructor(private protocol: string, private ip: string, private port: number) {
-        super();
         this.socket = new ZmqRequest();
         this.socket.connect(`${protocol}://${ip}:${port}`);
         console.log(`Requester connected to ${protocol}://${ip}:${port}`);
@@ -19,6 +18,7 @@ class Requester extends Socket {
                 const retString = ret.toString();
                 if (retString === "OK") {
                     this.socket.disconnect(`${this.protocol}://${this.ip}:${this.port}`);
+                    console.log("REQ_SOCKET disconnected successfully");
                     resolve();
                 } else {
                     reject();

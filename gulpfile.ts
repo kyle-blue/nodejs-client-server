@@ -5,7 +5,7 @@ import {
 } from "gulp";
 
 let node;
-function execNode(): void {
+function execNode(resolve): void {
     const ENTRY_POINT = path.resolve(__dirname, "./dist/bin/www.js");
     if (node !== undefined) {
         console.log("Changes made...");
@@ -24,7 +24,9 @@ function execNode(): void {
         if (code === 1 || code === 8) {
             console.log("Errors detected. Node crashed. Will restart on changes...");
         }
-        if (signal !== "SIGTERM") {
+        if (code === 0) {
+            process.kill(process.pid, 0);
+        } else if (signal !== "SIGTERM") {
             console.log(`NODE ERR\nCODE: ${code}\nSIGNAL: ${signal}`);
         }
     });

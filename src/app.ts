@@ -1,8 +1,4 @@
 import express from "express";
-import {
-    Worker, isMainThread, parentPort, MessagePort, workerData,
-} from "worker_threads";
-import path from "path";
 import Client from "./client";
 import routesRouter from "./routes";
 const app = express();
@@ -17,12 +13,16 @@ app.use((request, response, next) => {
 app.use(express.json());
 app.use(routesRouter);
 
-const fileName = path.resolve(__dirname, "client", "client.js");
 const client = new Client();
 client.init();
 
 process.on("SIGTERM", () => {
     client.disconnect();
+    process.exit();
+});
+process.on("SIGINT", () => {
+    client.disconnect();
+    process.exit();
 });
 
 export default app;

@@ -10,7 +10,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 let node;
 
-function execNode() {
+function execNode(resolve) {
   const ENTRY_POINT = _path.default.resolve(__dirname, "./dist/bin/www.js");
 
   if (node !== undefined) {
@@ -31,7 +31,9 @@ function execNode() {
       console.log("Errors detected. Node crashed. Will restart on changes...");
     }
 
-    if (signal !== "SIGTERM") {
+    if (code === 0) {
+      process.kill(process.pid, 0);
+    } else if (signal !== "SIGTERM") {
       console.log(`NODE ERR\nCODE: ${code}\nSIGNAL: ${signal}`);
     }
   });
