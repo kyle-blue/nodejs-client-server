@@ -1,4 +1,4 @@
-interface OHLC {
+type OHLC = {
     time: Date;
     open: number;
     high: number;

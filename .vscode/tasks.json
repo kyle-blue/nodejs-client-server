@@ -11,12 +11,28 @@
         {
             "label": "Launch Gulp",
             "type": "process",
+            // "windows": {
+            //     "options": {
+            //         "shell": {
+            //             "executable": "C:\\Windows\\System32\\wsl.exe",
+            //         },
+            //         "env": {
+            //             "PATH": "/home/kyle/.nvm/versions/node/v14.3.0/bin/"
+            //         }
+            //     },
+            //     "command": "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && source \"$NVM_DIR/nvm.sh\" && [ -s \"$NVM_DIR/bash_completion\" ] && source \"$NVM_DIR/bash_completion\" && nvm use 14 && npm version",
+            // },
             "group": "build",
-            "command": "yarn",
-            "args": [ "gulp" ],
+            "command": "C:\\Windows\\System32\\wsl.exe",
+            "args": [
+                // "version",
+                "bash",
+                "-c",
+                "/mnt/c/Users/Kyle/Documents/Workspace/Javascript/trading_nodejs_client_server/test.sh"
+            ],
             "isBackground": false,
             "presentation": {
-                "echo": false,
+                "echo": true,
                 "reveal": "always",
                 "focus": true,
                 "panel": "shared",

@@ -1,8 +1,9 @@
 import { workerData as wd, parentPort } from "worker_threads";
 import { Subscriber as ZmqSubscriber } from "zeromq";
 import Socket from "./Socket";
-import data from "../data";
+import data from "../data/Data";
 import Wrangler from "../data/Wrangler";
+import { Time } from "../data/Time";
 
 
 type SymbolInfo = {
@@ -53,7 +54,7 @@ class Subscriber implements Socket {
 
         const len = this.unprocessed.length;
         for (let i = 0; i < len; i++) {
-            this.wrangler.process(this.unprocessed.pop());
+            this.wrangler.process(this.unprocessed.pop(), [{ amount: 131, measurement: Time.MINUTE }]);
         }
 
         if (this.running) {

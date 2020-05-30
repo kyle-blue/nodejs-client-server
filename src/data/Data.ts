@@ -6,7 +6,7 @@ import OHLC from "./OHLC";
 
 class Data {
     ticks: Record<string, Tick[]>;
-    ohlc: Record<string, Record<string, OHLC[]>>; // Example string: "1 MINUTE"
+    ohlc: Record<string, Record<string, OHLC[]>>; // Example: {EURUSDp: {"1 MINUTE": {open: 1, high: 10, low: 0, close: 3, volume: 3, time: Date()}}}
     constructor() {
         if (!Data.instance) {
             Data.instance = this;

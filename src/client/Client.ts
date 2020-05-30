@@ -3,7 +3,7 @@ import { Worker } from "worker_threads";
 import path from "path";
 import { Request as ZmqRequest } from "zeromq";
 import Requester from "./Requester";
-import { Data } from "../data";
+import { Data } from "../data/Data";
 
 let [PROTOCOL, SERVER_IP, MAINPORT] = ["tcp", "localhost", 25001];
 class Client {
@@ -24,7 +24,15 @@ class Client {
             });
             this.subscriber.on("message", (msg: Data) => {
                 this.data = msg;
-                if (msg.ticks.EURUSDp) console.log(msg.ticks.EURUSDp);
+                console.log("");
+                console.log("");
+                console.log("");
+                console.log("");
+                if (msg.ohlc.EURUSD) {
+                    console.log(msg.ohlc.EURUSD);
+                }
+                // console.log(msg);
+                // if (msg.ticks.EURUSDp) console.log(msg.ticks.EURUSDp);
             });
             this.keyPressGetData();
         }).catch();

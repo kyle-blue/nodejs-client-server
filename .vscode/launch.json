@@ -5,8 +5,20 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Gulp NoDebug",
-            "program": "${workspaceRoot}/node_modules/gulp/bin/gulp.js",
+            "windows": {},
             "console": "integratedTerminal",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "start"
+            ],
+            "program": "${workspaceFolder}/src/bin/www.ts",
+            "restart": true,
+            "address": "0.0.0.0",
+            "port": 25585,
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ]
         },
         {
             "type": "node",
@@ -17,8 +29,9 @@
             "port": 25585,
             "sourceMaps": true,
             "preLaunchTask": "Launch Gulp",
-            // "localRoot": "${workspaceFolder}/src",
-            // "remoteRoot": "${workspaceFolder}/dist"
+            "outFiles": [
+                "${workspaceRoot}/dist/**/*.js",
+            ]
         },
         {
             "type": "node",
@@ -28,10 +41,10 @@
             "address": "0.0.0.0",
             "port": 25585,
             "sourceMaps": true,
-            "localRoot": "${workspaceFolder}/src",
-            "remoteRoot": "${workspaceFolder}/dist"
-            // "localRoot": "${workspaceFolder}/dist",
-            // "remoteRoot": "/app"
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js",
+                "${workspaceFolder}/dist/**/*.js.map",
+            ]
         },
     ]
 }

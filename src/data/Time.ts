@@ -40,14 +40,14 @@ function addTime(initial: Date, amount: number, measurement: Time): Date {
  * Amount and measurement params make up the interval
  */
 function getStartTime(startTick: Date, amount: number, measurement: Time): Date {
-    let start = startTick;
+    let start = new Date(startTick);
     // TODO: check amount doesn't go over certain threshold, e.g. More than 60 minutes goes into hours
 
     let newMeasurement = measurement;
     if (amount > 1) {
         const arr = Object.keys(Time);
         let index = arr.findIndex((val) => measurement === val);
-        index %= arr.length;
+        index = (arr.length + (index - 1)) % arr.length;
         newMeasurement = arr[index] as Time;
     }
     switch (newMeasurement) {
@@ -61,19 +61,19 @@ function getStartTime(startTick: Date, amount: number, measurement: Time): Date 
         start = new Date(start.getFullYear(), start.getMonth());
         break;
     case Time.DAY:
-        start = new Date(start.getFullYear(), start.getMonth(), start.getDay());
+        start = new Date(start.getFullYear(), start.getMonth(), start.getDate());
         break;
     case Time.HOUR:
-        start = new Date(start.getFullYear(), start.getMonth(), start.getDay(), start.getHours());
+        start = new Date(start.getFullYear(), start.getMonth(), start.getDate(), start.getHours());
         break;
     case Time.MINUTE:
-        start = new Date(start.getFullYear(), start.getMonth(), start.getDay(), start.getHours(), start.getMinutes());
+        start = new Date(start.getFullYear(), start.getMonth(), start.getDate(), start.getHours(), start.getMinutes());
         break;
     case Time.SECOND:
-        start = new Date(start.getFullYear(), start.getMonth(), start.getDay(), start.getHours(), start.getMinutes(), start.getSeconds());
+        start = new Date(start.getFullYear(), start.getMonth(), start.getDate(), start.getHours(), start.getMinutes(), start.getSeconds());
         break;
     case Time.MILLISECOND:
-        start = new Date(start.getFullYear(), start.getMonth(), start.getDay(), start.getHours(), start.getMinutes(), start.getSeconds(), start.getMilliseconds());
+        start = new Date(start.getFullYear(), start.getMonth(), start.getDate(), start.getHours(), start.getMinutes(), start.getSeconds(), start.getMilliseconds());
         break;
     default:
         console.error(`${measurement} is not a valid time measurement...`);
