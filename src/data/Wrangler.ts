@@ -1,8 +1,6 @@
-import { isNullOrUndefined } from "util";
 import data from "./Data";
-import OHLC from "./OHLC";
 import { getStartTime, Time, addTime } from "./Time";
-
+import CircularArray from "../util/CircularArray";
 
 type Interval = {
     amount: number;
@@ -34,29 +32,33 @@ class Wrangler {
         let startTime = this.getStartBarTime(symbol, amount, measurement);
         let current = 0;
         if (this.lastIndexes[symbol] && this.lastIndexes[symbol][interval]) {
-            current = this.lastIndexes[symbol][interval] + 1;
+            current = ticks.getIndex(this.lastIndexes[symbol][interval] + 1);
         }
-        while (startTime < ticks[ticks.length - 1].time) {
+        while (startTime < ticks.lastVal().time) {
             const nextTime = addTime(startTime, amount, measurement);
-            let nextIndex = ticks.findIndex((val) => val.time > nextTime);
-            if (nextIndex === -1) nextIndex = ticks.length;
+            let nextIndex = ticks.findIndex((val) => val.time >= nextTime); // Index of first tick of next bar
+            if (nextIndex === -1) nextIndex = ticks.getIndex(ticks.last + 1);
 
             let high = ticks[current].bid;
             let low = ticks[current].bid;
-            for (let i = current; i < nextIndex; i++) {
-                if (high < ticks[i].bid) high = ticks[i].bid;
-                if (low > ticks[i].bid) low = ticks[i].bid;
-            }
+            // eslint-disable-next-line no-loop-func
+            ticks.forEach((val, index, arr) => {
+                if (arr.getIndex(current + index) === nextIndex) return true; // Break if start of next bar
+                if (high < val.bid) high = val.bid;
+                if (low > val.bid) low = val.bid;
+            });
+
             const lastOHLC = currentOHLC[currentOHLC.length - 1] || undefined;
             let open = ticks[current].bid;
-            let volume = nextIndex - current;
+            let volume = ticks.difference(nextIndex, current);
             if (lastOHLC && startTime === lastOHLC.time) {
                 open = lastOHLC.open;
                 volume += lastOHLC.volume;
                 if (high < lastOHLC.high) high = lastOHLC.high;
                 if (low > lastOHLC.low) low = lastOHLC.low;
             }
-            const close = ticks[nextIndex - 1].bid;
+            const i = ticks.getIndex(nextIndex, -1);
+            const close = ticks[i].bid;
 
 
             const ohlcLen = data.ohlc[symbol][interval].length;
@@ -75,7 +77,7 @@ class Wrangler {
         }
 
         if (!this.lastIndexes[symbol]) this.lastIndexes[symbol] = { [interval]: undefined };
-        this.lastIndexes[symbol][interval] = ticks.length - 1;
+        this.lastIndexes[symbol][interval] = ticks.last;
     }
 
 
@@ -83,18 +85,18 @@ class Wrangler {
         const interval = `${amount} ${measurement}`;
         const ticks = data.ticks[symbol];
         let startTime: Date;
-        const now = ticks[this.lastIndexes[symbol][interval] + 1].time;
         if (data.ohlc[symbol][interval].length > 0) {
+            const now = ticks[ticks.getIndex(this.lastIndexes[symbol][interval] + 1)].time;
             const ohlcLen = data.ohlc[symbol][interval].length;
             const lastBarStart = data.ohlc[symbol][interval][ohlcLen - 1].time;
             const nextBarStart = addTime(lastBarStart, amount, measurement);
-            if (now > nextBarStart) {
+            if (now >= nextBarStart) {
                 startTime = nextBarStart;
             } else {
                 startTime = lastBarStart;
             }
         } else { // No previous bar found
-            startTime = getStartTime(ticks[0].time, amount, measurement);
+            startTime = getStartTime(ticks.firstVal().time, amount, measurement);
         }
         return startTime;
     }

@@ -4,6 +4,7 @@ import Socket from "./Socket";
 import data from "../data/Data";
 import Wrangler from "../data/Wrangler";
 import { Time } from "../data/Time";
+import CircularArray from "../util/CircularArray";
 
 
 type SymbolInfo = {
@@ -73,7 +74,7 @@ class Subscriber implements Socket {
                     const {
                         symbol: name, bid, ask, time,
                     } = symbol;
-                    if (!ticks[name]) ticks[name] = [];
+                    if (!ticks[name]) ticks[name] = new CircularArray(data.tickArrSize);
                     ticks[name].push({ bid, ask, time: new Date(time) });
                     this.unprocessed.push(name);
                 }

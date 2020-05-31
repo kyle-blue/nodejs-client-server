@@ -24,12 +24,8 @@ class Client {
             });
             this.subscriber.on("message", (msg: Data) => {
                 this.data = msg;
-                console.log("");
-                console.log("");
-                console.log("");
-                console.log("");
                 if (msg.ohlc.EURUSD) {
-                    console.log(msg.ohlc.EURUSD);
+                    console.log("\n\n\n\n\n\n", msg.ohlc.EURUSD);
                 }
                 // console.log(msg);
                 // if (msg.ticks.EURUSDp) console.log(msg.ticks.EURUSDp);

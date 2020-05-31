@@ -3,19 +3,27 @@
 
 import Tick from "./Tick";
 import OHLC from "./OHLC";
+import CircularArray from "../util/CircularArray";
+
+type IntervalName = string;
+type SymbolName = string;
 
 class Data {
-    ticks: Record<string, Tick[]>;
-    ohlc: Record<string, Record<string, OHLC[]>>; // Example: {EURUSDp: {"1 MINUTE": {open: 1, high: 10, low: 0, close: 3, volume: 3, time: Date()}}}
+    ticks: Record<SymbolName, CircularArray<Tick>>;
+    ohlc: Record<SymbolName, Record<IntervalName, OHLC[]>>; // Example: {EURUSDp: {"1 MINUTE": [{open: 1, high: 10, low: 0, close: 3, volume: 3, time: Date()}] }}
+    tickArrSize: number;
+
     constructor() {
         if (!Data.instance) {
             Data.instance = this;
         }
         this.ticks = {};
         this.ohlc = {};
+        this.tickArrSize = 1000; // Save max 1000 ticks per symbol;
         return Data.instance;
     }
 }
+
 
 const instance = new Data();
 export { Data };
