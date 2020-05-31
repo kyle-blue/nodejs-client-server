@@ -39,16 +39,14 @@ class CircularArray<T> extends Array {
 
     forEach(predicate: (value: T, index: number, arr: CircularArray<T>) => (boolean | void), thisArg?: any): void {
         predicate.bind(thisArg);
-        for (let i = 0, cur = this.first; i < this.length; i++, cur = this.getIndex(cur + 1)) {
-            if (this[cur] === undefined) break;
+        for (let i = 0, cur = this.first; i < this.currentLength; i++, cur = this.getIndex(cur + 1)) {
             if (predicate(this[cur], cur, this)) break;
         }
     }
 
     findIndex(predicate: (value: T, index: number, arr: CircularArray<T>) => boolean, thisArg?: any): number {
         predicate.bind(thisArg);
-        for (let i = 0, cur = this.first; i < this.length; i++, cur = this.getIndex(cur + 1)) {
-            if (this[cur] === undefined) return -1;
+        for (let i = 0, cur = this.first; i < this.currentLength; i++, cur = this.getIndex(cur + 1)) {
             if (predicate(this[cur], cur, this)) {
                 return cur;
             }
@@ -58,8 +56,7 @@ class CircularArray<T> extends Array {
 
     find(predicate: (value: T, index: number, arr: CircularArray<T>) => boolean, thisArg?: any): T {
         predicate.bind(thisArg);
-        for (let i = 0, cur = this.first; i < this.length; i++, cur = this.getIndex(cur + 1)) {
-            if (this[cur] === undefined) return undefined;
+        for (let i = 0, cur = this.first; i < this.currentLength; i++, cur = this.getIndex(cur + 1)) {
             if (predicate(this[cur], cur, this)) {
                 return this[cur];
             }
