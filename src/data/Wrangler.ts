@@ -34,7 +34,7 @@ class Wrangler {
         let startTime = this.getStartBarTime(symbol, amount, measurement);
         let current = 0;
         if (this.lastIndexes[symbol] && this.lastIndexes[symbol][interval]) {
-            current = this.lastIndexes[symbol][interval];
+            current = this.lastIndexes[symbol][interval] + 1;
         }
         while (startTime < ticks[ticks.length - 1].time) {
             const nextTime = addTime(startTime, amount, measurement);
@@ -83,7 +83,7 @@ class Wrangler {
         const interval = `${amount} ${measurement}`;
         const ticks = data.ticks[symbol];
         let startTime: Date;
-        const now = ticks[ticks.length - 1].time;
+        const now = ticks[this.lastIndexes[symbol][interval] + 1].time;
         if (data.ohlc[symbol][interval].length > 0) {
             const ohlcLen = data.ohlc[symbol][interval].length;
             const lastBarStart = data.ohlc[symbol][interval][ohlcLen - 1].time;

@@ -54,7 +54,7 @@ class Subscriber implements Socket {
 
         const len = this.unprocessed.length;
         for (let i = 0; i < len; i++) {
-            this.wrangler.process(this.unprocessed.pop(), [{ amount: 131, measurement: Time.MINUTE }]);
+            this.wrangler.process(this.unprocessed.pop(), [{ amount: 15, measurement: Time.SECOND }]);
         }
 
         if (this.running) {
