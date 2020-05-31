@@ -43,7 +43,7 @@ class Wrangler {
             let low = ticks[current].bid;
             // eslint-disable-next-line no-loop-func
             ticks.forEach((val, index, arr) => {
-                if (arr.getIndex(current + index) === nextIndex) return true; // Break if start of next bar
+                if (ticks.difference(nextIndex, ticks.getIndex(current + index)) <= 0) { return true; } // Break if start of next bar
                 if (high < val.bid) high = val.bid;
                 if (low > val.bid) low = val.bid;
             });

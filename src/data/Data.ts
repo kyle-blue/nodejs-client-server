@@ -22,9 +22,15 @@ class Data {
         this.tickArrSize = 1000; // Save max 1000 ticks per symbol;
         return Data.instance;
     }
+
+    copyFrom(other: Data) {
+        this.ticks = other.ticks;
+        this.ohlc = other.ohlc;
+        this.tickArrSize = other.tickArrSize;
+    }
 }
 
 
-const instance = new Data();
+let instance = new Data();
 export { Data };
 export default instance;

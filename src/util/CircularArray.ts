@@ -40,7 +40,7 @@ class CircularArray<T> extends Array {
     forEach(predicate: (value: T, index: number, arr: CircularArray<T>) => (boolean | void), thisArg?: any): void {
         predicate.bind(thisArg);
         for (let i = 0, cur = this.first; i < this.currentLength; i++, cur = this.getIndex(cur + 1)) {
-            if (predicate(this[cur], cur, this)) break;
+            if (predicate(this[cur], cur, this)) return;
         }
     }
 

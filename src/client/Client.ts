@@ -3,7 +3,8 @@ import { Worker } from "worker_threads";
 import path from "path";
 import { Request as ZmqRequest } from "zeromq";
 import Requester from "./Requester";
-import { Data } from "../data/Data";
+import data, { Data } from "../data";
+import dataEmitter from "../data/DataEmitter";
 
 let [PROTOCOL, SERVER_IP, MAINPORT] = ["tcp", "localhost", 25001];
 class Client {
@@ -13,7 +14,6 @@ class Client {
     constructor() {
         this.requester = undefined;
         this.subscriber = undefined;
-        this.data = new Data();
     }
 
     init(): void {
@@ -23,14 +23,13 @@ class Client {
                 workerData: { protocol: PROTOCOL, ip: SERVER_IP, port: subPort },
             });
             this.subscriber.on("message", (msg: Data) => {
-                this.data = msg;
-                if (msg.ohlc.EURUSD) {
-                    console.log("\n\n\n\n\n\n", msg.ohlc.EURUSD);
-                }
-                // console.log(msg);
-                // if (msg.ticks.EURUSDp) console.log(msg.ticks.EURUSDp);
+                data.copyFrom(msg);
+                dataEmitter.emit("RECEIVED");
             });
             this.keyPressGetData();
+            dataEmitter.on("GET", () => {
+                this.subscriber.postMessage("GET");
+            });
         }).catch();
     }
 
