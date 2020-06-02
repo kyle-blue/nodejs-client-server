@@ -4,7 +4,7 @@ import path from "path";
 import { Request as ZmqRequest } from "zeromq";
 import Requester from "./Requester";
 import data, { Data } from "../data";
-import dataEmitter from "../data/DataEmitter";
+import { getOptions } from "../data/DataEmitter";
 
 let [PROTOCOL, SERVER_IP, MAINPORT] = ["tcp", "localhost", 25001];
 class Client {
@@ -24,31 +24,31 @@ class Client {
             });
             this.subscriber.on("message", (msg: Data) => {
                 data.copyFrom(msg);
-                dataEmitter.emit("RECEIVED");
+                data.emitter.emit("RECEIVED", {});
             });
-            this.keyPressGetData();
-            dataEmitter.on("GET", () => {
-                this.subscriber.postMessage("GET");
+            data.emitter.on("GET", (options: getOptions) => {
+                this.subscriber.postMessage({ type: "GET", ...options });
             });
         }).catch();
     }
 
-    keyPressGetData(): void {
-        let { stdin } = process;
-        stdin.setRawMode(true);
-        stdin.resume();
-        stdin.setEncoding("utf8");
-        stdin.on("data", (key) => {
-            if (key == "\u0003") {
-                this.requester.disconnect();
-                this.subscriber.terminate().then(() => {
-                    process.exit(0);
-                });
-            } else {
-                this.subscriber.postMessage("GET");
-            }
-        });
-    }
+    // keyPressGetData(): void {
+    //     let { stdin } = process;
+    //     stdin.setRawMode(true);
+    //     stdin.resume();
+    //     stdin.setEncoding("utf8");
+    //     stdin.on("data", (key: string) => {
+    //         // eslint-disable-next-line eqeqeq
+    //         if (key == "\u0003") {
+    //             this.requester.disconnect();
+    //             this.subscriber.terminate().then(() => {
+    //                 process.exit(0);
+    //             });
+    //         } else {
+    //             this.subscriber.postMessage("GET");
+    //         }
+    //     });
+    // }
 
     disconnect(): void {
         this.requester.disconnect();

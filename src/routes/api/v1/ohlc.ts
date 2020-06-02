@@ -1,7 +1,5 @@
-import { Router, response } from "express";
-import { appendFileSync } from "fs";
+import { Router } from "express";
 import data from "../../../data";
-import dataEmitter from "../../../data/DataEmitter";
 
 const router = Router();
 
@@ -18,7 +16,8 @@ router.get("/", async (request, response, next) => {
         next();
         return;
     }
-    await dataEmitter.getData().catch(() => console.log("DataEmitter GET call timed out after 3 seconds"));
+    await data.emitter.await("GET", { what: "DATA", symbols: [symbol], intervals: [interval] })
+        .catch(() => console.log("Emitter GET DATA call timed out after 3 seconds"));
     if (!(data.ohlc[symbol] && data.ohlc[symbol][interval])) {
         response.send({});
     } else {

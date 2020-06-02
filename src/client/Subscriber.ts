@@ -5,6 +5,7 @@ import data from "../data/Data";
 import Wrangler from "../data/Wrangler";
 import { Time } from "../data/Time";
 import CircularArray from "../util/CircularArray";
+import { getOptions } from "../data/DataEmitter";
 
 
 type SymbolInfo = {
@@ -26,6 +27,8 @@ class Subscriber implements Socket {
     unprocessed: string[];
     isConnected: boolean;
     wrangler: Wrangler;
+    processCycle: number;
+    cycleTargets: number[];
 
     constructor(private protocol: string, private ip: string, private port: number) {
         this.socket = new ZmqSubscriber();
@@ -35,8 +38,10 @@ class Subscriber implements Socket {
         this.socket.receiveTimeout = 0;
 
         this.isConnected = true;
+        this.processCycle = 0;
         this.running = true;
         this.unprocessed = [];
+        this.cycleTargets = [];
         this.wrangler = new Wrangler();
         console.log(`Subscriber connected to ${protocol}://${ip}:${port}`);
     }
@@ -55,7 +60,18 @@ class Subscriber implements Socket {
 
         const len = this.unprocessed.length;
         for (let i = 0; i < len; i++) {
-            this.wrangler.process(this.unprocessed.pop(), [{ amount: 15, measurement: Time.SECOND }]);
+            const symbol = this.unprocessed.pop();
+            if (data.ohlc[symbol]) {
+                const intervals = Object.keys(data.ohlc[symbol]);
+                this.wrangler.process(symbol, intervals);
+            }
+            this.processCycle++;
+            for (let j = this.cycleTargets.length - 1; j >= 0; j--) {
+                if (this.processCycle > this.cycleTargets[j]) {
+                    parentPort.postMessage(data);
+                    this.cycleTargets.splice(j, 1);
+                }
+            }
         }
 
         if (this.running) {
@@ -104,11 +120,35 @@ function terminate(): void {
     }, 1);
 }
 
-parentPort.on("message", (msg) => {
-    if (msg === "GET") {
-        parentPort.postMessage(data);
+interface MsgType extends getOptions {
+    type: "GET" | "TERMINATE";
+}
+parentPort.on("message", (msg: MsgType) => {
+    if (msg.type === "GET" && msg.what === "DATA") {
+        if (msg.symbols && msg.intervals) { // They want data for a specific symbol and interval
+            for (const symbol of msg.symbols) {
+                for (const interval of msg.intervals) {
+                    if (!data.ohlc[symbol]) data.ohlc[symbol] = {};
+                    if (!data.ohlc[symbol][interval]) data.ohlc[symbol][interval] = [];
+                }
+                subscriber.unprocessed.push(symbol);
+            }
+            subscriber.cycleTargets.push(subscriber.unprocessed.length + subscriber.processCycle);
+        } else if (msg.intervals) { // They want data for a specific interval for ALL symbols
+            const symbols = Object.keys(data.ticks);
+            for (const symbol of symbols) {
+                for (const interval of msg.intervals) {
+                    if (!data.ohlc[symbol]) data.ohlc[symbol] = {};
+                    if (!data.ohlc[symbol][interval]) data.ohlc[symbol][interval] = [];
+                }
+                subscriber.unprocessed.push(symbol);
+            }
+            subscriber.cycleTargets.push(subscriber.unprocessed.length + subscriber.processCycle);
+        } else { // They just want current data
+            parentPort.postMessage(data);
+        }
     }
-    if (msg === "TERMINATE") terminate();
+    if (msg.type === "TERMINATE") terminate();
 });
 
 parentPort.on("close", () => terminate());

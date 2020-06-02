@@ -15,9 +15,26 @@ class Wrangler {
         this.lastIndexes = {};
     }
 
-    process(symbol: string, intervals: Interval[]): void {
-        for (const { amount, measurement } of intervals) {
-            this.processOHLC(symbol, amount, measurement, "BID");
+    process(symbol: string, intervals: string[]): void {
+        if (!data.ticks[symbol]) return;
+
+        let amounts: number[] = [];
+        let measurements: Time[] = [];
+        if (intervals) {
+            if (intervals[0] === "0") return;
+            intervals.forEach((val) => {
+                const ret = val.split(" ");
+                if (ret.length > 2 || ret.length === 0) return;
+                let [amount, measurement] = ret;
+                if (Number(amount) === 0) return;
+                if (!Object.keys(Time).includes(measurement)) return;
+                amounts.push(Number(amount));
+                measurements.push(measurement as Time);
+            });
+        }
+
+        for (let i = 0; i < amounts.length; i++) {
+            this.processOHLC(symbol, amounts[i], measurements[i], "BID");
         }
     }
 
@@ -29,11 +46,18 @@ class Wrangler {
         if (!data.ohlc[symbol]) data.ohlc[symbol] = { [interval]: [] };
         const currentOHLC = data.ohlc[symbol][interval];
 
-        let startTime = this.getStartBarTime(symbol, amount, measurement);
         let current = 0;
+        let isTicksUpdate = false;
         if (this.lastIndexes[symbol] && this.lastIndexes[symbol][interval]) {
-            current = ticks.getIndex(this.lastIndexes[symbol][interval] + 1);
+            const index = ticks.getIndex(this.lastIndexes[symbol][interval] + 1);
+            if (ticks[index] && ticks[this.lastIndexes[symbol][interval]] <= ticks[index].time) { // Check if this is a tick update or not.
+                isTicksUpdate = true;
+                current = index;
+            } else current = this.lastIndexes[symbol][interval];
         }
+
+        let startTime = this.getStartBarTime(symbol, amount, measurement, current);
+
         while (startTime < ticks.lastVal().time) {
             const nextTime = addTime(startTime, amount, measurement);
             let nextIndex = ticks.findIndex((val) => val.time >= nextTime); // Index of first tick of next bar
@@ -42,11 +66,13 @@ class Wrangler {
             let high = ticks[current].bid;
             let low = ticks[current].bid;
             // eslint-disable-next-line no-loop-func
-            ticks.forEach((val, index, arr) => {
-                if (ticks.difference(nextIndex, ticks.getIndex(current + index)) <= 0) { return true; } // Break if start of next bar
-                if (high < val.bid) high = val.bid;
-                if (low > val.bid) low = val.bid;
-            });
+            for (let i = 0; i < ticks.currentLength; i++) {
+                const curIndex = ticks.getIndex(current + i);
+                if (ticks.difference(nextIndex, curIndex) <= 0) break; // Break if start of next bar
+
+                if (high < ticks[curIndex].bid) high = ticks[curIndex].bid;
+                if (low > ticks[curIndex].bid) low = ticks[curIndex].bid;
+            }
 
             const lastOHLC = currentOHLC[currentOHLC.length - 1] || undefined;
             let open = ticks[current].bid;
@@ -81,12 +107,12 @@ class Wrangler {
     }
 
 
-    getStartBarTime(symbol, amount, measurement): Date {
+    getStartBarTime(symbol, amount, measurement, current: number): Date {
         const interval = `${amount} ${measurement}`;
         const ticks = data.ticks[symbol];
         let startTime: Date;
         if (data.ohlc[symbol][interval].length > 0) {
-            const now = ticks[ticks.getIndex(this.lastIndexes[symbol][interval] + 1)].time;
+            const now = ticks[current].time;
             const ohlcLen = data.ohlc[symbol][interval].length;
             const lastBarStart = data.ohlc[symbol][interval][ohlcLen - 1].time;
             const nextBarStart = addTime(lastBarStart, amount, measurement);

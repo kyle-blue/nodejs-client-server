@@ -4,6 +4,7 @@
 import Tick from "./Tick";
 import OHLC from "./OHLC";
 import CircularArray from "../util/CircularArray";
+import DataEmitter from "./DataEmitter";
 
 type IntervalName = string;
 type SymbolName = string;
@@ -12,6 +13,7 @@ class Data {
     ticks: Record<SymbolName, CircularArray<Tick>>;
     ohlc: Record<SymbolName, Record<IntervalName, OHLC[]>>; // Example: {EURUSDp: {"1 MINUTE": [{open: 1, high: 10, low: 0, close: 3, volume: 3, time: Date()}] }}
     tickArrSize: number;
+    emitter: DataEmitter;
 
     constructor() {
         if (!Data.instance) {
@@ -20,6 +22,7 @@ class Data {
         this.ticks = {};
         this.ohlc = {};
         this.tickArrSize = 1000; // Save max 1000 ticks per symbol;
+        this.emitter = new DataEmitter();
         return Data.instance;
     }
 
