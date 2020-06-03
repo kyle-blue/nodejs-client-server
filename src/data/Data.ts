@@ -15,29 +15,21 @@ export class Data {
     tickArrSize: number;
     emitter: DataEmitter;
 
-    constructor() {
-        if (!Data.instance) {
-            Data.instance = this;
-        }
+    constructor(other: Data) {
         this.ticks = {};
         this.ohlc = {};
         this.tickArrSize = 1000; // Save max 1000 ticks per symbol;
         this.emitter = new DataEmitter();
-        return Data.instance;
+        if (other !== undefined) this.copyFrom(other);
     }
 
 
-    copyFrom(other: Data) {
+    copyFrom(other: Data): void {
         this.ticks = other.ticks;
         this.ohlc = other.ohlc;
         this.tickArrSize = other.tickArrSize;
     }
 }
 
-
-export function setData(self: Data, other: Data): void {
-    self = other;
-}
-
-let instance = new Data();
+const instance = new Data();
 export default instance;

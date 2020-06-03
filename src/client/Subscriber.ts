@@ -1,5 +1,5 @@
 /* eslint-disable no-multiple-empty-lines */
-import { workerData as wd, parentPort } from "worker_threads";
+import { workerData as wd, parentPort, MessagePort } from "worker_threads";
 import { Subscriber as ZmqSubscriber } from "zeromq";
 import Socket from "./Socket";
 import data from "../data/Data";
@@ -7,7 +7,7 @@ import Wrangler from "../data/Wrangler";
 import CircularArray from "../util/CircularArray";
 import { getOptions } from "../data/DataEmitter";
 
-
+let stratChannel: MessagePort;
 type SymbolInfo = {
     symbol: string;
     bid: number;
@@ -65,7 +65,7 @@ class Subscriber implements Socket {
                 this.wrangler.process(symbol, intervals);
             }
         }
-
+        if (stratChannel) stratChannel.postMessage(data);
         parentPort.postMessage(data);
         if (this.running) {
             setTimeout(this.eventLoop.bind(this), 0);
@@ -133,7 +133,7 @@ function calcIntervals(symbols: string[], intervals: string[]): void {
     }
 }
 
-interface MsgType extends getOptions {type: "GET" | "TERMINATE"}
+interface MsgType extends getOptions {type: "GET" | "TERMINATE" | "CHANNEL"; channel: any}
 parentPort.on("message", (msg: MsgType) => {
     if (msg.type === "GET") {
         if (msg.symbols && msg.intervals) { // They want data for a specific symbol and interval
@@ -144,6 +144,9 @@ parentPort.on("message", (msg: MsgType) => {
         } else { // They just want current data
             parentPort.postMessage(data);
         }
+    }
+    if (msg.type === "CHANNEL") {
+        stratChannel = msg.channel;
     }
     if (msg.type === "TERMINATE") terminate();
 });

@@ -1,9 +1,12 @@
-import { workerData, parentPort } from "worker_threads";
+import { workerData, parentPort, MessagePort } from "worker_threads";
 import fs from "fs";
 import path from "path";
 import Strategy from "../strategies/Strategy";
 import Requester from "./Requester";
 import { getOptions } from "../data/DataEmitter";
+import data from "../data";
+
+let subChannel: MessagePort;
 
 class StrategyManager {
     strategies: Strategy[];
@@ -16,7 +19,7 @@ class StrategyManager {
         this.requester = new Requester(...workerData.requesterParams);
 
         this.strategies = [];
-        this.getAllStrategies().then(() => setTimeout(() => this.start(), 0));
+        // this.getAllStrategies().then(() => setTimeout(() => this.start(), 0));
     }
 
     private async getAllStrategies(): Promise<void> {
@@ -55,7 +58,6 @@ class StrategyManager {
 
 const stratManager = new StrategyManager();
 
-
 function terminate(): void {
     stratManager.stop();
     setTimeout(() => {
@@ -68,10 +70,17 @@ function terminate(): void {
 }
 
 
-interface MsgType extends getOptions {type: "GET" | "TERMINATE"}
+interface MsgType extends getOptions {type: "GET" | "TERMINATE" | "CHANNEL"; channel: any}
 parentPort.on("message", (msg: MsgType) => {
     if (msg.type === "GET") {
-
-    } else if (msg.type === "TERMINATE") terminate();
+        console.log("GETTING");
+    }
+    if (msg.type === "CHANNEL") {
+        subChannel = msg.channel;
+        subChannel.on("message", (msg) => {
+            data.copyFrom(msg);
+        });
+    }
+    if (msg.type === "TERMINATE") terminate();
 });
 parentPort.on("close", () => terminate()); // Only for unexpected closes

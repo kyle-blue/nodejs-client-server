@@ -18,10 +18,10 @@ router.get("/", (request, response, next) => {
         return;
     }
     data.emitter.emit("GET", { what: "DATA", symbols: [symbol], intervals: [interval] });
-
     if (!(data.ohlc[symbol] && data.ohlc[symbol][interval])) {
         response.send({});
     } else {
+        // console.log(data.ohlc[symbol][interval]);
         response.send(data.ohlc[symbol][interval]);
     }
     response.end();

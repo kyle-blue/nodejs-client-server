@@ -1,9 +1,9 @@
 
-import { Worker } from "worker_threads";
+import { Worker, MessagePort, MessageChannel } from "worker_threads";
 import path from "path";
 import { Request as ZmqRequest } from "zeromq";
 import Requester from "./Requester";
-import data, { Data, setData } from "../data";
+import data, { Data } from "../data";
 import { getOptions } from "../data/DataEmitter";
 
 let [PROTOCOL, SERVER_IP, MAINPORT] = ["tcp", "localhost", 25001];
@@ -15,39 +15,37 @@ class Client {
         this.subscriber = undefined;
 
         this.assignPorts().then(([reqPort, subPort]) => {
-            this.initStratManager(reqPort); // Must be initialised first. Sub sends this data
-            this.initSubscriber(subPort);
+            const { port1, port2 } = new MessageChannel();
+            this.initStratManager(reqPort, port1); // Must be initialised first. Sub sends this data
+            this.initSubscriber(subPort, port2);
 
             this.initDataEmitter();
         }).catch();
     }
 
-    private initSubscriber(subPort: number): void {
+    private initSubscriber(subPort: number, channel: MessagePort): void {
         this.subscriber = new Worker(path.resolve(__dirname, "Subscriber.js"), {
             workerData: { protocol: PROTOCOL, ip: SERVER_IP, port: subPort },
         });
         this.subscriber.on("message", (msg: Data | "TERMINATED") => {
             if (msg === "TERMINATED") {
                 this.subscriber = null;
-                // return;
+                return;
             }
-            // this.stratManager.postMessage(msg);
-            // setData(data, msg);
-            // console.log(msg);
+            data.copyFrom(msg);
         });
+        this.subscriber.postMessage({ type: "CHANNEL", channel }, [channel]);
     }
 
-    private initStratManager(reqPort: number): void {
+    private initStratManager(reqPort: number, channel: MessagePort): void {
         this.stratManager = new Worker(path.resolve(__dirname, "StrategyManager.js"),
             { workerData: { requesterParams: [PROTOCOL, SERVER_IP, reqPort] } });
 
 
         this.stratManager.on("message", (msg) => {
-            if (msg === "TERMINATED") {
-                this.stratManager = null;
-                // return;
-            }
+            if (msg === "TERMINATED") this.stratManager = null;
         });
+        this.stratManager.postMessage({ type: "CHANNEL", channel }, [channel]);
     }
 
     private initDataEmitter(): void {
@@ -62,7 +60,16 @@ class Client {
 
     terminate(): Promise<void> {
         return new Promise((resolve, reject) => {
-            resolve();
+            console.log("TERMINATING");
+            const exit = (): void => {
+                if (this.subscriber === null && this.stratManager === null) resolve();
+                else setTimeout(() => exit(), 20);
+            };
+            this.stratManager.postMessage({ type: "TERMINATE" });
+            this.subscriber.postMessage({ type: "TERMINATE" }); // TODO: Change worker ts typing to ensure correct messages are posted
+
+            setTimeout(reject, 3000);
+            exit();
         });
     }
 
