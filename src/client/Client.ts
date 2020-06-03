@@ -3,56 +3,67 @@ import { Worker } from "worker_threads";
 import path from "path";
 import { Request as ZmqRequest } from "zeromq";
 import Requester from "./Requester";
-import data, { Data } from "../data";
+import data, { Data, setData } from "../data";
 import { getOptions } from "../data/DataEmitter";
 
 let [PROTOCOL, SERVER_IP, MAINPORT] = ["tcp", "localhost", 25001];
 class Client {
-    requester: Requester;
     subscriber: Worker;
+    stratManager: Worker;
     data: Data;
     constructor() {
-        this.requester = undefined;
         this.subscriber = undefined;
-    }
 
-    init(): void {
         this.assignPorts().then(([reqPort, subPort]) => {
-            this.requester = new Requester(PROTOCOL, SERVER_IP, reqPort);
-            this.subscriber = new Worker(path.resolve(__dirname, "Subscriber.js"), {
-                workerData: { protocol: PROTOCOL, ip: SERVER_IP, port: subPort },
-            });
-            this.subscriber.on("message", (msg: Data) => {
-                data.copyFrom(msg);
-                data.emitter.emit("RECEIVED", {});
-            });
-            data.emitter.on("GET", (options: getOptions) => {
-                this.subscriber.postMessage({ type: "GET", ...options });
-            });
+            this.initStratManager(reqPort); // Must be initialised first. Sub sends this data
+            this.initSubscriber(subPort);
+
+            this.initDataEmitter();
         }).catch();
     }
 
-    // keyPressGetData(): void {
-    //     let { stdin } = process;
-    //     stdin.setRawMode(true);
-    //     stdin.resume();
-    //     stdin.setEncoding("utf8");
-    //     stdin.on("data", (key: string) => {
-    //         // eslint-disable-next-line eqeqeq
-    //         if (key == "\u0003") {
-    //             this.requester.disconnect();
-    //             this.subscriber.terminate().then(() => {
-    //                 process.exit(0);
-    //             });
-    //         } else {
-    //             this.subscriber.postMessage("GET");
-    //         }
-    //     });
-    // }
+    private initSubscriber(subPort: number): void {
+        this.subscriber = new Worker(path.resolve(__dirname, "Subscriber.js"), {
+            workerData: { protocol: PROTOCOL, ip: SERVER_IP, port: subPort },
+        });
+        this.subscriber.on("message", (msg: Data | "TERMINATED") => {
+            if (msg === "TERMINATED") {
+                this.subscriber = null;
+                // return;
+            }
+            // this.stratManager.postMessage(msg);
+            // setData(data, msg);
+            // console.log(msg);
+        });
+    }
 
-    disconnect(): void {
-        this.requester.disconnect();
-        this.subscriber.postMessage("TERMINATE");
+    private initStratManager(reqPort: number): void {
+        this.stratManager = new Worker(path.resolve(__dirname, "StrategyManager.js"),
+            { workerData: { requesterParams: [PROTOCOL, SERVER_IP, reqPort] } });
+
+
+        this.stratManager.on("message", (msg) => {
+            if (msg === "TERMINATED") {
+                this.stratManager = null;
+                // return;
+            }
+        });
+    }
+
+    private initDataEmitter(): void {
+        data.emitter.on("GET", (options: getOptions) => {
+            if (options.what === "DATA" && this.subscriber && this.stratManager) {
+                this.subscriber.postMessage({ type: "GET", ...options });
+            } else if (options.what === "STRATEGIES") {
+                this.stratManager.postMessage({ type: "GET", ...options });
+            }
+        });
+    }
+
+    terminate(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
     }
 
     private async assignPorts(): Promise<[number, number]> {

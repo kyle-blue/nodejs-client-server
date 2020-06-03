@@ -10,5 +10,6 @@
             }
         ]
     ],
-    "sourceMaps": true
+    "sourceMaps": true,
+    "sourceRoot": "src"
 }

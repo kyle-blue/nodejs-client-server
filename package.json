@@ -6,8 +6,8 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "start": "gulp",
-    "watch": "gulp watch",
+    "start": "node dist/bin/www.js",
+    "watch": " babel src -w --out-dir dist --extensions .ts,.tsx",
     "test": "jest --watch --runInBand"
   },
   "dependencies": {
@@ -33,9 +33,11 @@
     "@types/node": "^12.12.5",
     "@typescript-eslint/eslint-plugin": "^2.6.1",
     "@typescript-eslint/parser": "^2.6.0",
+    "babel-plugin-wildcard": "^6.0.0",
     "eslint": "^6.6.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "node-sass": "^4.13.0",
+    "nodemon": "^2.0.4",
     "typescript": "^3.6.4"
   }
 }

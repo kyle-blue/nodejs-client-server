@@ -10,16 +10,10 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 let node;
 
-function execNode(resolve) {
-  const ENTRY_POINT = _path.default.resolve(__dirname, "./dist/bin/www.js");
+const ENTRY_POINT = _path.default.resolve(__dirname, "./dist/bin/www.js");
 
-  if (node !== undefined) {
-    console.log("Changes made...");
-    console.log("Node process exists, Killing node and restarting...\n");
-    node.kill();
-  }
-
-  console.log("Starting Node Process..."); // Spawn returns stream while exec returns a buffer.
+function restart() {
+  console.log("\nStarting Node Process..."); // Spawn returns stream while exec returns a buffer.
   // stdio: options choose which streams are piped to the parent process.'
   // stdio: ["inherit"] is the same as chosen below
 
@@ -42,6 +36,19 @@ function execNode(resolve) {
   });
 }
 
+function execNode(resolve) {
+  if (node !== undefined) {
+    console.log("Changes made...");
+    console.log("Node process exists, Killing node and restarting...\n");
+    node.kill();
+    node.on("exit", () => {
+      restart();
+    });
+  } else {
+    restart();
+  }
+}
+
 async function transpileTS(filePathWithExt) {
   const filePath = _path.default.join(_path.default.dirname(filePathWithExt), _path.default.basename(filePathWithExt, ".ts")); // Outputs to the root dist folder
 
@@ -54,7 +61,7 @@ async function transpileTS(filePathWithExt) {
     (0, _child_process.exec)(`mkdir -p "${destDir}"`, resolve);
   });
   await new Promise((resolve, reject) => {
-    (0, _child_process.exec)(`babel "${filePath}.ts" -o "${destPath}.js" --source-maps=true`, async (err, stdout, stderr) => {
+    (0, _child_process.exec)(`babel "${filePath}.ts" -o "${destPath}.js" --config-file "${_path.default.resolve(__dirname, ".babelrc")}"`, async (err, stdout, stderr) => {
       if (!err && !stderr) {
         console.log(`\nSUCCESS: Transpiled ${filePath}.ts to ${destPath}.js`);
         if (stdout) console.log(stdout);
@@ -120,5 +127,3 @@ function watchFiles() {
 
 exports.default = runNodeAndWatch;
 exports.watch = watchFiles;
-
-//# sourceMappingURL=gulpfile.js.map

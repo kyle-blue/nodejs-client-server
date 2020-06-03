@@ -4,10 +4,18 @@ import Socket from "./Socket";
 class Requester implements Socket {
     socket: ZmqRequest;
 
+    // eslint-disable-next-line no-useless-constructor
     constructor(private protocol: string, private ip: string, private port: number) {
+        this.socket = undefined;
+        // this.socket.receiveTimeout = 0;
+        this.connect();
+    }
+
+    connect(): void {
         this.socket = new ZmqRequest();
-        this.socket.connect(`${protocol}://${ip}:${port}`);
-        console.log(`Requester connected to ${protocol}://${ip}:${port}`);
+        this.socket.connect(`${this.protocol}://${this.ip}:${this.port}`);
+        this.socket.linger = 0;
+        console.log(`Requester connected to ${this.protocol}://${this.ip}:${this.port}`);
     }
 
     disconnect(): Promise<void> {

@@ -1,19 +1,15 @@
-import { exec, spawn } from "child_process";
+import { exec, spawn, ChildProcessByStdio } from "child_process";
 import path from "path";
 import {
     watch,
 } from "gulp";
 
-let node;
-function execNode(resolve): void {
-    const ENTRY_POINT = path.resolve(__dirname, "./dist/bin/www.js");
-    if (node !== undefined) {
-        console.log("Changes made...");
-        console.log("Node process exists, Killing node and restarting...\n");
-        node.kill();
-    }
+let node: ChildProcessByStdio<null, null, null>;
+const ENTRY_POINT = path.resolve(__dirname, "./dist/bin/www.js");
 
-    console.log("Starting Node Process...");
+
+function restart() {
+    console.log("\nStarting Node Process...");
     // Spawn returns stream while exec returns a buffer.
     // stdio: options choose which streams are piped to the parent process.'
     // stdio: ["inherit"] is the same as chosen below
@@ -36,6 +32,21 @@ function execNode(resolve): void {
     });
 }
 
+
+function execNode(resolve): void {
+    if (node !== undefined) {
+        console.log("Changes made...");
+        console.log("Node process exists, Killing node and restarting...\n");
+        node.kill();
+        node.on("exit", () => {
+            restart();
+        });
+    } else {
+        restart();
+    }
+}
+
+
 async function transpileTS(filePathWithExt: string): Promise<void> {
     const filePath = path.join(path.dirname(filePathWithExt), path.basename(filePathWithExt, ".ts"));
     // Outputs to the root dist folder
@@ -47,7 +58,7 @@ async function transpileTS(filePathWithExt: string): Promise<void> {
     });
 
     await new Promise((resolve, reject) => {
-        exec(`babel "${filePath}.ts" -o "${destPath}.js" --source-maps=true`, async (err, stdout, stderr) => {
+        exec(`babel "${filePath}.ts" -o "${destPath}.js" --config-file "${path.resolve(__dirname, ".babelrc")}"`, async (err, stdout, stderr) => {
             if (!err && !stderr) {
                 console.log(`\nSUCCESS: Transpiled ${filePath}.ts to ${destPath}.js`);
                 if (stdout) console.log(stdout);

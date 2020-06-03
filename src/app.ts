@@ -1,6 +1,7 @@
 import express from "express";
 import Client from "./client/Client";
 import routesRouter from "./routes";
+import SMWorker from "./client/SMWorker";
 const app = express();
 
 app.use((request, response, next) => {
@@ -14,15 +15,17 @@ app.use(express.json());
 app.use(routesRouter);
 
 const client = new Client();
-client.init();
-
 process.on("SIGTERM", () => {
-    client.disconnect();
-    process.exit();
+    client.terminate()
+        .then(() => console.log("Successfully terminated"))
+        .catch(() => console.log("Could not gracefully exit process. Force closing..."))
+        .finally(() => process.exit());
 });
 process.on("SIGINT", () => {
-    client.disconnect();
-    process.exit();
+    client.terminate()
+        .then(() => console.log("Successfully terminated"))
+        .catch(() => console.log("Could not gracefully exit process. Force closing..."))
+        .finally(() => process.exit());
 });
 
 export default app;

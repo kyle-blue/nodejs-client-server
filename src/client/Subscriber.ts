@@ -1,9 +1,9 @@
+/* eslint-disable no-multiple-empty-lines */
 import { workerData as wd, parentPort } from "worker_threads";
 import { Subscriber as ZmqSubscriber } from "zeromq";
 import Socket from "./Socket";
 import data from "../data/Data";
 import Wrangler from "../data/Wrangler";
-import { Time } from "../data/Time";
 import CircularArray from "../util/CircularArray";
 import { getOptions } from "../data/DataEmitter";
 
@@ -27,23 +27,22 @@ class Subscriber implements Socket {
     unprocessed: string[];
     isConnected: boolean;
     wrangler: Wrangler;
-    processCycle: number;
-    cycleTargets: number[];
 
     constructor(private protocol: string, private ip: string, private port: number) {
+        this.initZmqSocket();
+        this.isConnected = true;
+        this.running = true;
+        this.unprocessed = [];
+        this.wrangler = new Wrangler();
+    }
+
+    private initZmqSocket(): void {
         this.socket = new ZmqSubscriber();
-        this.socket.connect(`${protocol}://${ip}:${port}`);
+        this.socket.connect(`${this.protocol}://${this.ip}:${this.port}`);
         this.socket.subscribe("");
         this.socket.linger = 0;
         this.socket.receiveTimeout = 0;
-
-        this.isConnected = true;
-        this.processCycle = 0;
-        this.running = true;
-        this.unprocessed = [];
-        this.cycleTargets = [];
-        this.wrangler = new Wrangler();
-        console.log(`Subscriber connected to ${protocol}://${ip}:${port}`);
+        console.log(`Subscriber connected to ${this.protocol}://${this.ip}:${this.port}`);
     }
 
     stop(): void {
@@ -55,7 +54,7 @@ class Subscriber implements Socket {
         setTimeout(this.eventLoop.bind(this), 0);
     }
 
-    eventLoop(): void {
+    private eventLoop(): void {
         this.getTicks();
 
         const len = this.unprocessed.length;
@@ -65,21 +64,15 @@ class Subscriber implements Socket {
                 const intervals = Object.keys(data.ohlc[symbol]);
                 this.wrangler.process(symbol, intervals);
             }
-            this.processCycle++;
-            for (let j = this.cycleTargets.length - 1; j >= 0; j--) {
-                if (this.processCycle > this.cycleTargets[j]) {
-                    parentPort.postMessage(data);
-                    this.cycleTargets.splice(j, 1);
-                }
-            }
         }
 
+        parentPort.postMessage(data);
         if (this.running) {
             setTimeout(this.eventLoop.bind(this), 0);
         }
     }
 
-    getTicks(): void {
+    private getTicks(): void {
         const { ticks } = data;
         this.socket.receive().then((ret) => {
             const retString = ret.toString();
@@ -108,6 +101,14 @@ class Subscriber implements Socket {
     }
 }
 
+
+
+
+
+
+
+
+
 let subscriber = new Subscriber(wd.protocol, wd.ip, wd.port);
 subscriber.start();
 
@@ -116,39 +117,34 @@ function terminate(): void {
     subscriber.stop();
     setTimeout(() => {
         subscriber.disconnect();
+        parentPort.postMessage("TERMINATED");
         process.exit();
-    }, 1);
+    }, 10);
 }
 
-interface MsgType extends getOptions {
-    type: "GET" | "TERMINATE";
+/** Calculates intervals on symbols, and after doing so, a msg is posted back to parentPort */
+function calcIntervals(symbols: string[], intervals: string[]): void {
+    for (const symbol of symbols) {
+        for (const interval of intervals) {
+            if (!data.ohlc[symbol]) data.ohlc[symbol] = {};
+            if (!data.ohlc[symbol][interval]) data.ohlc[symbol][interval] = [];
+        }
+        subscriber.unprocessed.push(symbol);
+    }
 }
+
+interface MsgType extends getOptions {type: "GET" | "TERMINATE"}
 parentPort.on("message", (msg: MsgType) => {
-    if (msg.type === "GET" && msg.what === "DATA") {
+    if (msg.type === "GET") {
         if (msg.symbols && msg.intervals) { // They want data for a specific symbol and interval
-            for (const symbol of msg.symbols) {
-                for (const interval of msg.intervals) {
-                    if (!data.ohlc[symbol]) data.ohlc[symbol] = {};
-                    if (!data.ohlc[symbol][interval]) data.ohlc[symbol][interval] = [];
-                }
-                subscriber.unprocessed.push(symbol);
-            }
-            subscriber.cycleTargets.push(subscriber.unprocessed.length + subscriber.processCycle);
+            calcIntervals(msg.symbols, msg.intervals);
         } else if (msg.intervals) { // They want data for a specific interval for ALL symbols
             const symbols = Object.keys(data.ticks);
-            for (const symbol of symbols) {
-                for (const interval of msg.intervals) {
-                    if (!data.ohlc[symbol]) data.ohlc[symbol] = {};
-                    if (!data.ohlc[symbol][interval]) data.ohlc[symbol][interval] = [];
-                }
-                subscriber.unprocessed.push(symbol);
-            }
-            subscriber.cycleTargets.push(subscriber.unprocessed.length + subscriber.processCycle);
+            calcIntervals(symbols, msg.intervals);
         } else { // They just want current data
             parentPort.postMessage(data);
         }
     }
     if (msg.type === "TERMINATE") terminate();
 });
-
-parentPort.on("close", () => terminate());
+parentPort.on("close", () => terminate()); // This is only for unexpected closes

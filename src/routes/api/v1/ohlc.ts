@@ -8,7 +8,8 @@ const router = Router();
 type OHLCQuery = {symbol: string; interval: string}
 
 // Url format /api/v1/ohlc?symbol=x&interval=y
-router.get("/", async (request, response, next) => {
+router.get("/", (request, response, next) => {
+    // console.log("w");
     response.type("application/json");
     let { symbol, interval } = request.query as OHLCQuery;
 
@@ -16,8 +17,8 @@ router.get("/", async (request, response, next) => {
         next();
         return;
     }
-    await data.emitter.await("GET", { what: "DATA", symbols: [symbol], intervals: [interval] })
-        .catch(() => console.log("Emitter GET DATA call timed out after 3 seconds"));
+    data.emitter.emit("GET", { what: "DATA", symbols: [symbol], intervals: [interval] });
+
     if (!(data.ohlc[symbol] && data.ohlc[symbol][interval])) {
         response.send({});
     } else {

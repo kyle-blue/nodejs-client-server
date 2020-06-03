@@ -1,3 +1,3 @@
-import data, { Data } from "./Data";
-export { Data };
+import data, { Data, setData } from "./Data";
+export { Data, setData };
 export default data;

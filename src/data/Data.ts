@@ -9,7 +9,7 @@ import DataEmitter from "./DataEmitter";
 type IntervalName = string;
 type SymbolName = string;
 
-class Data {
+export class Data {
     ticks: Record<SymbolName, CircularArray<Tick>>;
     ohlc: Record<SymbolName, Record<IntervalName, OHLC[]>>; // Example: {EURUSDp: {"1 MINUTE": [{open: 1, high: 10, low: 0, close: 3, volume: 3, time: Date()}] }}
     tickArrSize: number;
@@ -26,6 +26,7 @@ class Data {
         return Data.instance;
     }
 
+
     copyFrom(other: Data) {
         this.ticks = other.ticks;
         this.ohlc = other.ohlc;
@@ -34,6 +35,9 @@ class Data {
 }
 
 
+export function setData(self: Data, other: Data): void {
+    self = other;
+}
+
 let instance = new Data();
-export { Data };
 export default instance;
