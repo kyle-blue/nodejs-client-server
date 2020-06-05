@@ -1,7 +1,6 @@
 import express from "express";
 import Client from "./client/Client";
 import routesRouter from "./routes";
-import SMWorker from "./client/SMWorker";
 const app = express();
 
 app.use((request, response, next) => {
@@ -16,7 +15,7 @@ app.use(routesRouter);
 
 
 const client = new Client();
-function terminate() {
+function terminate(): void {
     client.terminate()
         .then(() => console.log("Successfully terminated"))
         .catch(() => console.log("Could not gracefully exit process. Force closing..."))

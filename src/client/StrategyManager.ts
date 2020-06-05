@@ -51,8 +51,22 @@ class StrategyManager {
 
     private eventLoop(): void {
         if (this.running) {
+            for (const strat of this.strategies) {
+                strat.update();
+                for (let i = 0; i < strat.pendingTrades.length; i++) this.executeTrade(strat);
+            }
+
             setTimeout(this.eventLoop.bind(this), 0);
         }
+    }
+
+    executeTrade(strat: Strategy) {
+        const tradeInfo = strat.pendingTrades.pop();
+        this.requester.order(tradeInfo).then(() => {
+            strat.openTrades.push({ ...tradeInfo, status: "OPEN" });
+        }).catch(() => {
+            strat.failedTrades.push({ ...tradeInfo, status: "FAILED" });
+        });
     }
 }
 

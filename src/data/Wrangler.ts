@@ -20,10 +20,12 @@ class Wrangler {
         current: number; // current index
     };
 
+
     constructor() {
         this.lastIndexes = {};
         this.current = {}; /** Data regarding the current iteration */
     }
+
 
     process(symbol: string, intervals: string[]): void {
         if (!data.ticks[symbol]) return;
@@ -37,6 +39,7 @@ class Wrangler {
             this.processOHLC(symbol, amounts[i], measurements[i], "BID");
         }
     }
+
 
     private convertIntervals(intervals: string[]): [number [], Time[]] | null {
         const amounts = [];
@@ -54,6 +57,7 @@ class Wrangler {
         }
         return [amounts, measurements];
     }
+
 
     /** Amount and measurement params make up the interval */
     processOHLC(symbol: string, amount: number, measurement: Time, using: "BID" | "ASK" | "BOTH"): void {
@@ -99,6 +103,7 @@ class Wrangler {
         return nextIndex;
     }
 
+
     getOHLCV(startTime: Date, nextIndex: number): [number, number, number, number, number] {
         let {
             amount, measurement, current, ticks, symbol, interval,
@@ -130,6 +135,7 @@ class Wrangler {
 
         return [open, high, low, close, volume];
     }
+
 
     getCurrent(): number {
         const { symbol, interval, ticks } = this.current;

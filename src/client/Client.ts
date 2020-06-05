@@ -23,6 +23,18 @@ class Client {
         }).catch();
     }
 
+    private async assignPorts(): Promise<[number, number]> {
+        let reqSock = new ZmqRequest();
+        reqSock.connect(`${PROTOCOL}://${SERVER_IP}:${MAINPORT}`);
+        reqSock.send(JSON.stringify({ type: "REQUEST CONNECTION" }));
+
+        let ret = JSON.parse((await reqSock.receive()).toString());
+        reqSock.disconnect(`${PROTOCOL}://${SERVER_IP}:${MAINPORT}`);
+        let reqPort = ret.req_port;
+        let subPort = ret.sub_port;
+        return [reqPort, subPort];
+    }
+
     private initSubscriber(subPort: number, channel: MessagePort): void {
         this.subscriber = new Worker(path.resolve(__dirname, "Subscriber.js"), {
             workerData: { protocol: PROTOCOL, ip: SERVER_IP, port: subPort },
@@ -71,18 +83,6 @@ class Client {
             setTimeout(reject, 3000);
             exit();
         });
-    }
-
-    private async assignPorts(): Promise<[number, number]> {
-        let reqSock = new ZmqRequest();
-        reqSock.connect(`${PROTOCOL}://${SERVER_IP}:${MAINPORT}`);
-        reqSock.send("REQUESTING CONNECTION");
-
-        let ret = (await reqSock.receive()).toString();
-        reqSock.disconnect(`${PROTOCOL}://${SERVER_IP}:${MAINPORT}`);
-        let reqPort = Number(ret.match(/(?<=REQ_PORT: )[0-9]+(?=\n)/)[0]);
-        let subPort = Number(ret.match(/(?<=SUB_PORT: )[0-9]+(?=\n)/)[0]);
-        return [reqPort, subPort];
     }
 }
 
