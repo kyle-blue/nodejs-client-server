@@ -6,7 +6,8 @@ import Requester from "./Requester";
 import data, { Data } from "../data";
 import { getOptions } from "../data/DataEmitter";
 
-let [PROTOCOL, SERVER_IP, MAINPORT] = ["tcp", "localhost", 25001];
+// let [PROTOCOL, SERVER_IP, MAINPORT] = ["tcp", "localhost", 25001];
+let [PROTOCOL, SERVER_IP, MAINPORT] = ["tcp", "host.docker.internal", 25001];
 class Client {
     subscriber: Worker;
     stratManager: Worker;

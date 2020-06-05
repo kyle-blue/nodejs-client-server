@@ -19,7 +19,7 @@ class StrategyManager {
         this.requester = new Requester(...workerData.requesterParams);
 
         this.strategies = [];
-        // this.getAllStrategies().then(() => setTimeout(() => this.start(), 0));
+        // this.getAllStrategies().then(() => setTimeout(() => this.start(), 0)); ////
     }
 
     private async getAllStrategies(): Promise<void> {

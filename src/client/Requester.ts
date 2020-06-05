@@ -1,6 +1,7 @@
 import { Request as ZmqRequest } from "zeromq";
 import Socket from "./Socket";
 import { TradeOp, TradeInfo } from "./TradeInfoTypes";
+import { Time } from "../data/Time";
 
 class Requester implements Socket {
     socket: ZmqRequest;
@@ -19,7 +20,20 @@ class Requester implements Socket {
         console.log(`Requester connected to ${this.protocol}://${this.ip}:${this.port}`);
 
 
-        this.order(0, "EURUSD", TradeOp.BUY, 1, 1.0123, 3, 1.001, 1.141, 1, "Testing")
+        this.order({
+            id: 0,
+            symbol: "EURUSD",
+            type: TradeOp.BUY,
+            lots: 1,
+            price: 1.0123,
+            maxSlippage: 3,
+            stopLoss: 1.001,
+            takeProfit: 1.141,
+            qty: 1,
+            comment: "Testing",
+            status: "PENDING",
+            time: new Date(),
+        })
             .then((val) => {
                 console.log("Wow, you actually did it");
             }).catch(() => {
