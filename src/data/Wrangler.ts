@@ -1,7 +1,7 @@
-import data from "./Data";
+import data from "./types/Data";
 import { getStartTime, Time, addTime } from "./Time";
-import CircularArray from "../util/CircularArray";
-import Tick from "./Tick";
+import CircularArray from "../util/CircularList";
+import Tick from "./types/Tick";
 
 type Interval = {
     amount: number;

@@ -2,10 +2,11 @@
 import { workerData as wd, parentPort, MessagePort } from "worker_threads";
 import { Subscriber as ZmqSubscriber } from "zeromq";
 import Socket from "./Socket";
-import data from "../data/Data";
+import data from "../data/types/Data";
 import Wrangler from "../data/Wrangler";
-import CircularArray from "../util/CircularArray";
+import CircularArray from "../util/CircularList";
 import { getOptions } from "../data/DataEmitter";
+import Tick from "../data/types/Tick";
 
 let stratChannel: MessagePort;
 type SymbolInfo = {
@@ -20,6 +21,8 @@ type JsonData = {
     symbols: Array<SymbolInfo>;
 }
 
+type SymbolName = string;
+
 class Subscriber implements Socket {
     socket: ZmqSubscriber;
     running: boolean;
@@ -27,6 +30,7 @@ class Subscriber implements Socket {
     unprocessed: string[];
     isConnected: boolean;
     wrangler: Wrangler;
+    ticks: Record<SymbolName, CircularArray<Tick>>;
 
     constructor(private protocol: string, private ip: string, private port: number) {
         this.initZmqSocket();
@@ -34,6 +38,7 @@ class Subscriber implements Socket {
         this.running = true;
         this.unprocessed = [];
         this.wrangler = new Wrangler();
+        this.ticks = {};
     }
 
     private initZmqSocket(): void {
@@ -65,15 +70,15 @@ class Subscriber implements Socket {
                 this.wrangler.process(symbol, intervals);
             }
         }
-        if (stratChannel) stratChannel.postMessage(data);
-        parentPort.postMessage(data);
+        // if (stratChannel) stratChannel.postMessage(data);
+        // parentPort.postMessage(data);
         if (this.running) {
             setTimeout(this.eventLoop.bind(this), 0);
         }
     }
 
     private getTicks(): void {
-        const { ticks } = data;
+        const { ticks } = this;
         this.socket.receive().then((ret) => {
             const retString = ret.toString();
             const json: JsonData = JSON.parse(retString);
@@ -139,11 +144,12 @@ parentPort.on("message", (msg: MsgType) => {
         if (msg.symbols && msg.intervals) { // They want data for a specific symbol and interval
             calcIntervals(msg.symbols, msg.intervals);
         } else if (msg.intervals) { // They want data for a specific interval for ALL symbols
-            const symbols = Object.keys(data.ticks);
+            const symbols = Object.keys(this.ticks);
             calcIntervals(symbols, msg.intervals);
         } else { // They just want current data
             parentPort.postMessage(data);
         }
+        parentPort.postMessage(data);
     }
     if (msg.type === "CHANNEL") {
         stratChannel = msg.channel;

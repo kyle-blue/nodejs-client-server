@@ -12,7 +12,7 @@ class CircularArray<T> extends Array {
         this.currentLength = 0;
     }
 
-    push(value: T): this{
+    push(value: T): this {
         this.last = this.getIndex(this.last + 1);
         super[this.last] = value;
         if (this.currentLength === this.length || this.first === -1) this.first = this.getIndex(this.first + 1);
