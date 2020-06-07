@@ -4,8 +4,9 @@ import { Subscriber as ZmqSubscriber } from "zeromq";
 import Socket from "./Socket";
 import data from "../data/Data";
 import Wrangler from "../data/Wrangler";
-import CircularArray from "../util/CircularArray";
 import { getOptions } from "../data/DataEmitter";
+import { TickEnum as Tick } from "../data/types/Tick";
+import CircularFloatArray from "../util/CircularFloatArray";
 
 let stratChannel: MessagePort;
 type SymbolInfo = {
@@ -19,6 +20,8 @@ type JsonData = {
     type: string;
     symbols: Array<SymbolInfo>;
 }
+
+type SymbolName = string;
 
 class Subscriber implements Socket {
     socket: ZmqSubscriber;
@@ -65,8 +68,8 @@ class Subscriber implements Socket {
                 this.wrangler.process(symbol, intervals);
             }
         }
-        if (stratChannel) stratChannel.postMessage(data);
-        parentPort.postMessage(data);
+        // if (stratChannel) stratChannel.postMessage(data);
+        // parentPort.postMessage(data);
         if (this.running) {
             setTimeout(this.eventLoop.bind(this), 0);
         }
@@ -83,8 +86,10 @@ class Subscriber implements Socket {
                     const {
                         symbol: name, bid, ask, time,
                     } = symbol;
-                    if (!ticks[name]) ticks[name] = new CircularArray(data.tickArrSize);
-                    ticks[name].push({ bid, ask, time: new Date(time) });
+                    if (!ticks[name]) {
+                        ticks[name] = new CircularFloatArray(data.tickArrSize, Tick.BID, Tick.ASK, Tick.TIME);
+                    }
+                    ticks[name].push(bid, ask, Date.parse(time));
                     this.unprocessed.push(name);
                 }
             }
@@ -139,10 +144,8 @@ parentPort.on("message", (msg: MsgType) => {
         if (msg.symbols && msg.intervals) { // They want data for a specific symbol and interval
             calcIntervals(msg.symbols, msg.intervals);
         } else if (msg.intervals) { // They want data for a specific interval for ALL symbols
-            const symbols = Object.keys(data.ticks);
+            const symbols = Object.keys(this.ticks);
             calcIntervals(symbols, msg.intervals);
-        } else { // They just want current data
-            parentPort.postMessage(data);
         }
     }
     if (msg.type === "CHANNEL") {

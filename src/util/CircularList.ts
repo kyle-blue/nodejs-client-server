@@ -1,4 +1,4 @@
-class CircularArray<T> extends Array {
+class CircularList<T> extends Array {
     /** Where arr.push(x) adds to */
     public first: number;
     public last: number;
@@ -12,7 +12,7 @@ class CircularArray<T> extends Array {
         this.currentLength = 0;
     }
 
-    push(value: T): this{
+    push(value: T): this {
         this.last = this.getIndex(this.last + 1);
         super[this.last] = value;
         if (this.currentLength === this.length || this.first === -1) this.first = this.getIndex(this.first + 1);
@@ -37,14 +37,14 @@ class CircularArray<T> extends Array {
     }
 
 
-    forEach(predicate: (value: T, index: number, arr: CircularArray<T>) => (boolean | void), thisArg?: any): void {
+    forEach(predicate: (value: T, index: number, arr: CircularList<T>) => (boolean | void), thisArg?: any): void {
         predicate.bind(thisArg);
         for (let i = 0, cur = this.first; i < this.currentLength; i++, cur = this.getIndex(cur + 1)) {
             if (predicate(this[cur], cur, this)) return;
         }
     }
 
-    findIndex(predicate: (value: T, index: number, arr: CircularArray<T>) => boolean, thisArg?: any): number {
+    findIndex(predicate: (value: T, index: number, arr: CircularList<T>) => boolean, thisArg?: any): number {
         predicate.bind(thisArg);
         for (let i = 0, cur = this.first; i < this.currentLength; i++, cur = this.getIndex(cur + 1)) {
             if (predicate(this[cur], cur, this)) {
@@ -54,7 +54,7 @@ class CircularArray<T> extends Array {
         return -1;
     }
 
-    find(predicate: (value: T, index: number, arr: CircularArray<T>) => boolean, thisArg?: any): T {
+    find(predicate: (value: T, index: number, arr: CircularList<T>) => boolean, thisArg?: any): T {
         predicate.bind(thisArg);
         for (let i = 0, cur = this.first; i < this.currentLength; i++, cur = this.getIndex(cur + 1)) {
             if (predicate(this[cur], cur, this)) {
@@ -80,4 +80,4 @@ class CircularArray<T> extends Array {
 }
 
 
-export default CircularArray;
+export default CircularList;

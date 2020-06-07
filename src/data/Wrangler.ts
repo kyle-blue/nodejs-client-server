@@ -1,7 +1,8 @@
 import data from "./Data";
 import { getStartTime, Time, addTime } from "./Time";
-import CircularArray from "../util/CircularArray";
-import Tick from "./Tick";
+import CircularList from "../util/CircularList";
+import { TickEnum as Tick } from "./types/Tick";
+import CircularFloatArray from "../util/CircularFloatArray";
 
 type Interval = {
     amount: number;
@@ -14,7 +15,7 @@ class Wrangler {
     current: {
         symbol: string;
         interval: string;
-        ticks: CircularArray<Tick>;
+        ticks: CircularFloatArray;
         amount: number;
         measurement: Time;
         current: number; // current index
@@ -23,7 +24,16 @@ class Wrangler {
 
     constructor() {
         this.lastIndexes = {};
+        // @ts-ignore
         this.current = {}; /** Data regarding the current iteration */
+
+        this.wut();
+    }
+    wut() {
+        if (data.ohlc.EURUSD) {
+            console.log(data.ohlc.EURUSD);
+        }
+        setTimeout(this.wut.bind(this), 2000);
     }
 
 
@@ -71,7 +81,7 @@ class Wrangler {
         this.current.current = this.getCurrent();
         let startTime = this.getStartBarTime();
 
-        while (startTime < ticks.lastVal().time) {
+        while (startTime.getTime() < ticks.lastVal(Tick.TIME)) {
             const nextTime = addTime(startTime, amount, measurement);
             const nextIndex = this.getNextIndex(nextTime);
             let [open, high, low, close, volume] = this.getOHLCV(startTime, nextIndex);
@@ -92,14 +102,14 @@ class Wrangler {
         }
 
         if (!this.lastIndexes[symbol]) this.lastIndexes[symbol] = { [interval]: undefined };
-        this.lastIndexes[symbol][interval] = ticks.last;
+        this.lastIndexes[symbol][interval] = ticks.getLast();
     }
 
 
     getNextIndex(nextTime: Date): number {
         let { ticks } = this.current;
-        let nextIndex = ticks.findIndex((val) => val.time >= nextTime); // Index of first tick of next bar
-        if (nextIndex === -1) nextIndex = ticks.getIndex(ticks.last + 1);
+        let nextIndex = ticks.findIndex((index) => ticks.get(index, Tick.TIME) >= nextTime); // Index of first tick of next bar
+        if (nextIndex === -1) nextIndex = ticks.getIndex(ticks.getLast() + 1);
         return nextIndex;
     }
 
@@ -110,19 +120,19 @@ class Wrangler {
         } = this.current;
         const currentOHLC = data.ohlc[symbol][interval];
 
-        let high = ticks[current].bid;
-        let low = ticks[current].bid;
+        let high = ticks.get(current, Tick.BID);
+        let low = ticks.get(current, Tick.BID);
         // eslint-disable-next-line no-loop-func
-        for (let i = 0; i < ticks.currentLength; i++) {
+        for (let i = 0, currentLength = ticks.getCurrentLength(); i < currentLength; i++) {
             const curIndex = ticks.getIndex(current + i);
             if (ticks.difference(nextIndex, curIndex) <= 0) break; // Break if start of next bar
 
-            if (high < ticks[curIndex].bid) high = ticks[curIndex].bid;
-            if (low > ticks[curIndex].bid) low = ticks[curIndex].bid;
+            if (high < ticks.get(curIndex, Tick.BID)) high = ticks.get(curIndex, Tick.BID);
+            if (low > ticks.get(curIndex, Tick.BID)) low = ticks.get(curIndex, Tick.BID);
         }
 
         const lastOHLC = currentOHLC[currentOHLC.length - 1] || undefined;
-        let open = ticks[current].bid;
+        let open = ticks.get(current, Tick.BID);
         let volume = ticks.difference(nextIndex, current);
         if (lastOHLC && startTime === lastOHLC.time) {
             open = lastOHLC.open;
@@ -131,7 +141,7 @@ class Wrangler {
             if (low > lastOHLC.low) low = lastOHLC.low;
         }
         const i = ticks.getIndex(nextIndex, -1);
-        const close = ticks[i].bid;
+        const close = ticks.get(i, Tick.BID);
 
         return [open, high, low, close, volume];
     }
@@ -142,7 +152,7 @@ class Wrangler {
         let current = 0;
         if (this.lastIndexes[symbol] && this.lastIndexes[symbol][interval]) {
             const index = ticks.getIndex(this.lastIndexes[symbol][interval] + 1);
-            if (ticks[index] && ticks[this.lastIndexes[symbol][interval]] <= ticks[index].time) { // Check if this is a tick update or not.
+            if (ticks.get(this.lastIndexes[symbol][interval], Tick.TIME) <= ticks.get(index, Tick.TIME)) { // Check if this is a tick update or not.
                 current = index;
             } else current = this.lastIndexes[symbol][interval];
         }
@@ -156,7 +166,7 @@ class Wrangler {
         } = this.current;
         let startTime: Date;
         if (data.ohlc[symbol][interval].length > 0) {
-            const now = ticks[current].time;
+            const now = ticks.get(current, Tick.TIME);
             const ohlcLen = data.ohlc[symbol][interval].length;
             const lastBarStart = data.ohlc[symbol][interval][ohlcLen - 1].time;
             const nextBarStart = addTime(lastBarStart, amount, measurement);
@@ -166,7 +176,7 @@ class Wrangler {
                 startTime = lastBarStart;
             }
         } else { // No previous bar found
-            startTime = getStartTime(ticks.firstVal().time, amount, measurement);
+            startTime = getStartTime(ticks.firstVal(Tick.TIME), amount, measurement);
         }
         return startTime;
     }
