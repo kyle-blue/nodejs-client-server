@@ -1,4 +1,4 @@
-type OHLC = {
+export type OHLC = {
     time: number;
     open: number;
     high: number;
@@ -7,4 +7,6 @@ type OHLC = {
     volume: number; // Tick volume, since this is Forex
 }
 
-export default OHLC;
+export enum OHLCEnum {
+    TIME, OPEN, HIGH, LOW, CLOSE, VOLUME
+}

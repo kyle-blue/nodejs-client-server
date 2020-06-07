@@ -1,5 +1,5 @@
 import { Router } from "express";
-import data from "../../../data";
+import data from "../../../../IPC/Data";
 const router = Router();
 
 

@@ -1,13 +1,13 @@
-import { workerData, parentPort, MessagePort } from "worker_threads";
+import { workerData, parentPort } from "worker_threads";
 import fs from "fs";
 import path from "path";
-import Strategy from "../strategies/Strategy";
+import Strategy from "./strategies/Strategy";
 import Requester from "./Requester";
-import { getOptions } from "../data/DataEmitter";
-import data from "../data";
+import channels from "../IPC/Channels";
+import { onAdd } from "../IPC/SharedArrayFunctions";
+import { MessageType } from "../IPC/MessageType";
 
-let subChannel: MessagePort;
-
+channels.api = parentPort;
 class StrategyManager {
     strategies: Strategy[];
     running: boolean;
@@ -19,7 +19,6 @@ class StrategyManager {
         this.requester = new Requester(...workerData.requesterParams);
 
         this.strategies = [];
-        // this.getAllStrategies().then(() => setTimeout(() => this.start(), 0)); ////
     }
 
     private async getAllStrategies(): Promise<void> {
@@ -46,7 +45,9 @@ class StrategyManager {
 
     start(): void {
         this.running = true;
-        setTimeout(this.eventLoop.bind(this), 0);
+        if (this.strategies.length === 0) {
+            this.getAllStrategies().then(() => setTimeout(this.eventLoop.bind(this), 0));
+        } else setTimeout(this.eventLoop.bind(this), 0);
     }
 
     private eventLoop(): void {
@@ -60,7 +61,7 @@ class StrategyManager {
         }
     }
 
-    executeTrade(strat: Strategy) {
+    executeTrade(strat: Strategy): void {
         const tradeInfo = strat.pendingTrades.pop();
         this.requester.order(tradeInfo).then(() => {
             strat.openTrades.push({ ...tradeInfo, status: "OPEN" });
@@ -77,24 +78,23 @@ function terminate(): void {
     setTimeout(() => {
         stratManager.disconnect()
             .then(() => {
-                parentPort.postMessage("TERMINATED");
+                channels.api.postMessage({ type: "TERMINATED" });
                 process.exit();
             });
     }, 10);
 }
 
+function onSubMessage(msg: MessageType): void {
+    if (msg.type === "ADD") onAdd(msg);
+}
 
-interface MsgType extends getOptions {type: "GET" | "TERMINATE" | "CHANNEL"; channel: any}
-parentPort.on("message", (msg: MsgType) => {
-    if (msg.type === "GET") {
-        console.log("GETTING");
-    }
+channels.api.on("message", (msg) => {
     if (msg.type === "CHANNEL") {
-        subChannel = msg.channel;
-        subChannel.on("message", (msg) => {
-            data.copyFrom(msg);
-        });
+        channels.subscriber = msg.payload;
+        channels.subscriber.on("message", onSubMessage);
+        stratManager.start();
     }
+    if (msg.type === "ADD") onAdd(msg);
     if (msg.type === "TERMINATE") terminate();
 });
-parentPort.on("close", () => terminate()); // Only for unexpected closes
+channels.api.on("close", () => terminate()); // Only for unexpected closes

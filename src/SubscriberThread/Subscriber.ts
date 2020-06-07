@@ -1,28 +1,27 @@
 /* eslint-disable no-multiple-empty-lines */
-import { workerData as wd, parentPort, MessagePort } from "worker_threads";
+import { workerData as wd, parentPort } from "worker_threads";
 import { Subscriber as ZmqSubscriber } from "zeromq";
-import Socket from "./Socket";
-import data from "../data/types/Data";
-import Wrangler from "../data/Wrangler";
-import { getOptions } from "../data/DataEmitter";
-import { TickEnum as Tick } from "../data/types/Tick";
-import CircularFloatArray from "../util/CircularFloatArray";
+import Socket from "../Util/Socket";
+import data from "../IPC/Data/Data";
+import Wrangler from "./Wrangler";
+import channels from "../IPC/Channels";
+import { addNewSharedArray, onAdd } from "../IPC/SharedArrayFunctions";
+import { MessageType } from "../IPC/MessageType";
 
-let stratChannel: MessagePort;
+
 type SymbolInfo = {
     symbol: string;
     bid: number;
     ask: number;
     time: string;
 }
-
 type JsonData = {
     type: string;
     symbols: Array<SymbolInfo>;
 }
-
 type SymbolName = string;
 
+channels.api = parentPort;
 class Subscriber implements Socket {
     socket: ZmqSubscriber;
     running: boolean;
@@ -30,7 +29,6 @@ class Subscriber implements Socket {
     unprocessed: string[];
     isConnected: boolean;
     wrangler: Wrangler;
-    ticks: Record<SymbolName, CircularArray<Tick>>;
 
     constructor(private protocol: string, private ip: string, private port: number) {
         this.initZmqSocket();
@@ -38,7 +36,6 @@ class Subscriber implements Socket {
         this.running = true;
         this.unprocessed = [];
         this.wrangler = new Wrangler();
-        this.ticks = {};
     }
 
     private initZmqSocket(): void {
@@ -70,15 +67,11 @@ class Subscriber implements Socket {
                 this.wrangler.process(symbol, intervals);
             }
         }
-        // if (stratChannel) stratChannel.postMessage(data);
-        // parentPort.postMessage(data);
-        if (this.running) {
-            setTimeout(this.eventLoop.bind(this), 0);
-        }
+        if (this.running) setTimeout(this.eventLoop.bind(this), 0);
     }
 
     private getTicks(): void {
-        const { ticks } = this;
+        const { ticks } = data;
         this.socket.receive().then((ret) => {
             const retString = ret.toString();
             const json: JsonData = JSON.parse(retString);
@@ -89,9 +82,13 @@ class Subscriber implements Socket {
                         symbol: name, bid, ask, time,
                     } = symbol;
                     if (!ticks[name]) {
-                        ticks[name] = new CircularFloatArray(data.tickArrSize, Tick.BID, Tick.ASK, Tick.TIME);
+                        addNewSharedArray({
+                            type: "TICK", channels: channels.getOtherChannels(), symbol: name,
+                        });
                     }
+                    ticks[name].lock();
                     ticks[name].push(bid, ask, Date.parse(time));
+                    ticks[name].unlock();
                     this.unprocessed.push(name);
                 }
             }
@@ -109,51 +106,32 @@ class Subscriber implements Socket {
 }
 
 
-
-
-
-
-
-
-
 let subscriber = new Subscriber(wd.protocol, wd.ip, wd.port);
-subscriber.start();
 
 
 function terminate(): void {
     subscriber.stop();
     setTimeout(() => {
         subscriber.disconnect();
-        parentPort.postMessage("TERMINATED");
+        channels.api.postMessage({ type: "TERMINATED" });
         process.exit();
     }, 10);
 }
 
-/** Calculates intervals on symbols, and after doing so, a msg is posted back to parentPort */
-function calcIntervals(symbols: string[], intervals: string[]): void {
-    for (const symbol of symbols) {
-        for (const interval of intervals) {
-            if (!data.ohlc[symbol]) data.ohlc[symbol] = {};
-            if (!data.ohlc[symbol][interval]) data.ohlc[symbol][interval] = [];
-        }
-        subscriber.unprocessed.push(symbol);
-    }
+function onStratMessage(msg: MessageType): void {
+    if (msg.type === "ADD") onAdd(msg);
 }
 
-interface MsgType extends getOptions {type: "GET" | "TERMINATE" | "CHANNEL"; channel: any}
-parentPort.on("message", (msg: MsgType) => {
-    if (msg.type === "GET") {
-        if (msg.symbols && msg.intervals) { // They want data for a specific symbol and interval
-            calcIntervals(msg.symbols, msg.intervals);
-        } else if (msg.intervals) { // They want data for a specific interval for ALL symbols
-            const symbols = Object.keys(this.ticks);
-            calcIntervals(symbols, msg.intervals);
-        }
-        parentPort.postMessage(data);
-    }
+channels.api.on("message", (msg) => {
     if (msg.type === "CHANNEL") {
-        stratChannel = msg.channel;
+        channels.stratManager = msg.payload;
+        channels.stratManager.on("message", onStratMessage);
+        subscriber.start(); // Can now start
     }
     if (msg.type === "TERMINATE") terminate();
+    if (msg.type === "ADD") {
+        onAdd(msg);
+        subscriber.unprocessed.push(msg.symbol);
+    }
 });
-parentPort.on("close", () => terminate()); // This is only for unexpected closes
+channels.api.on("close", () => terminate()); // This is only for unexpected closes

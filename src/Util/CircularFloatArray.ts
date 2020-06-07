@@ -1,3 +1,5 @@
+
+
 /* eslint-disable max-len */
 const UNLOCKED = 0;
 const LOCKED = 1;
@@ -5,6 +7,7 @@ const LOCKED = 1;
 const FIRST_OFFSET = 1;
 const LAST_OFFSET = 2;
 const CURRENT_LENGTH_OFFSET = 3;
+/** IMPORTANT: WHEN ACCESSING FIRSTVAL, YOU MUST USE LOCK */
 class CircularFloatArray {
     // public arr: Float64Array; This isn't actually needed. We always convert through tempFloatArr
     public arr: Int32Array;
@@ -130,15 +133,17 @@ class CircularFloatArray {
         Atomics.notify(this.arr, index, 1);
     }
 
+    /** Because of locking, the order here is highly important. Dont change it... */
     push(...value: number[]): this {
         const last = this.getIndex(this.getLast() + 1);
         const first = this.getFirst();
         const currentLength = this.getCurrentLength();
-        this.setLast(last);
+        if (currentLength === this.length) this.setFirst(this.getIndex(first + 1));
         if (this.namesLen > 1) this.setAll(last, ...value);
         else this.set(last, value[0]);
-        if (currentLength === this.length || first === -1) this.setFirst(this.getIndex(first + 1));
         if (currentLength < this.length) this.setCurrentLength(currentLength + 1);
+        if (first === -1) this.setFirst(this.getIndex(first + 1));
+        this.setLast(last);
         return this;
     }
 

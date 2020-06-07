@@ -6,7 +6,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "start": "node dist/bin/www.js",
+    "start": "node dist/APIThread/bin/www.js",
     "watch": " babel src -w --out-dir dist --extensions .ts,.tsx",
     "test": "jest --watch --runInBand"
   },

@@ -1,7 +1,6 @@
 import { Request as ZmqRequest } from "zeromq";
-import Socket from "./Socket";
+import Socket from "../Util/Socket";
 import { TradeOp, TradeInfo } from "./TradeInfoTypes";
-import { Time } from "../data/Time";
 
 class Requester implements Socket {
     socket: ZmqRequest;

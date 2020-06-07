@@ -1,5 +1,5 @@
 import express from "express";
-import Client from "./client/Client";
+import Client from "./Client";
 import routesRouter from "./routes";
 const app = express();
 

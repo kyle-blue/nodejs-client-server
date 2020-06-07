@@ -1,5 +1,7 @@
 import { Router } from "express";
-import data from "../../../data";
+import data from "../../../../IPC/Data";
+import channels from "../../../../IPC/Channels";
+import { addNewSharedArray } from "../../../../IPC/SharedArrayFunctions";
 
 const router = Router();
 
@@ -9,7 +11,6 @@ type OHLCQuery = {symbol: string; interval: string}
 
 // Url format /api/v1/ohlc?symbol=x&interval=y
 router.get("/", (request, response, next) => {
-    // console.log("w");
     response.type("application/json");
     let { symbol, interval } = request.query as OHLCQuery;
 
@@ -17,11 +18,12 @@ router.get("/", (request, response, next) => {
         next();
         return;
     }
-    data.emitter.emit("GET", { what: "DATA", symbols: [symbol], intervals: [interval] });
     if (!(data.ohlc[symbol] && data.ohlc[symbol][interval])) {
+        addNewSharedArray({
+            type: "OHLC", channels: channels.getOtherChannels(), symbol, interval,
+        });
         response.send({});
     } else {
-        // console.log(data.ohlc[symbol][interval]);
         response.send(data.ohlc[symbol][interval]);
     }
     response.end();

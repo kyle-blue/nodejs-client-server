@@ -1,5 +1,5 @@
-import { TradeOp, TradeInfo } from "../client/TradeInfoTypes";
-import data from "../data";
+import { TradeOp, TradeInfo } from "../TradeInfoTypes";
+import data from "../../IPC/Data";
 
 class Strategy {
     openTrades: TradeInfo[];
