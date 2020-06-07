@@ -2,7 +2,7 @@
 import { workerData as wd, parentPort, MessagePort } from "worker_threads";
 import { Subscriber as ZmqSubscriber } from "zeromq";
 import Socket from "./Socket";
-import data from "../data/Data";
+import data from "../data/types/Data";
 import Wrangler from "../data/Wrangler";
 import { getOptions } from "../data/DataEmitter";
 import { TickEnum as Tick } from "../data/types/Tick";
@@ -30,6 +30,7 @@ class Subscriber implements Socket {
     unprocessed: string[];
     isConnected: boolean;
     wrangler: Wrangler;
+    ticks: Record<SymbolName, CircularArray<Tick>>;
 
     constructor(private protocol: string, private ip: string, private port: number) {
         this.initZmqSocket();
@@ -37,6 +38,7 @@ class Subscriber implements Socket {
         this.running = true;
         this.unprocessed = [];
         this.wrangler = new Wrangler();
+        this.ticks = {};
     }
 
     private initZmqSocket(): void {
@@ -76,7 +78,7 @@ class Subscriber implements Socket {
     }
 
     private getTicks(): void {
-        const { ticks } = data;
+        const { ticks } = this;
         this.socket.receive().then((ret) => {
             const retString = ret.toString();
             const json: JsonData = JSON.parse(retString);
@@ -147,6 +149,7 @@ parentPort.on("message", (msg: MsgType) => {
             const symbols = Object.keys(this.ticks);
             calcIntervals(symbols, msg.intervals);
         }
+        parentPort.postMessage(data);
     }
     if (msg.type === "CHANNEL") {
         stratChannel = msg.channel;

@@ -1,4 +1,4 @@
-import data from "./Data";
+import data from "./types/Data";
 import { getStartTime, Time, addTime } from "./Time";
 import CircularList from "../util/CircularList";
 import { TickEnum as Tick } from "./types/Tick";
