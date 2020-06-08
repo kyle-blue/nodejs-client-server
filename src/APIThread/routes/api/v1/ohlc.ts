@@ -9,7 +9,7 @@ const router = Router();
 
 type OHLCQuery = {symbol: string; interval: string}
 
-// Url format /api/v1/ohlc?symbol=x&interval=y
+// Url format /api/v1/ohlc?symbol=x&interval=y&from=z
 router.get("/", (request, response, next) => {
     response.type("application/json");
     let { symbol, interval } = request.query as OHLCQuery;
@@ -18,14 +18,28 @@ router.get("/", (request, response, next) => {
         next();
         return;
     }
-    if (!(data.ohlc[symbol] && data.ohlc[symbol][interval])) {
+    if (!channels.isReady()) {
+        response.send({ status: "NOT READY" });
+    } else if (!(data.ohlc[symbol] && data.ohlc[symbol][interval])) {
         addNewSharedArray({
             type: "OHLC", channels: channels.getOtherChannels(), symbol, interval,
         });
-        response.send({});
+        response.send({ status: "NOT READY" });
     } else {
-        response.send(data.ohlc[symbol][interval]);
+        let retString = "";
+        const ohlc = data.ohlc[symbol][interval];
+        const len = ohlc.names.length;
+        const first = ohlc.getFirst();
+        const last = ohlc.getLast();
+        if (last < first) {
+            retString += `[${ohlc.floatArr.subarray(first * len, (ohlc.length + 1) * len).join(",")}`;
+            retString += `,${ohlc.floatArr.subarray(0, (last + 1) * len).join(",")}]`;
+        } else {
+            retString += `[${data.ohlc[symbol][interval].floatArr.subarray(first * len, (last + 1) * len).join(",")}]`;
+        }
+        response.send(retString);
     }
+
     response.end();
 });
 

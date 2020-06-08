@@ -17,25 +17,28 @@ export function addNewSharedArray(options: AddNewSharedArrayOptions) {
     } = options;
     if (type === "TICK") {
         data.ticks[symbol] = new CircularFloatArray(data.tickArrSize, Tick.BID, Tick.ASK, Tick.TIME);
+        const payload = data.ticks[symbol].buf;
         for (const channel of channels) {
             channel.postMessage({
-                type: "ADD", what: "TICK", symbol, payload: data.ticks[symbol].buf,
-            }, [data.ticks[symbol].buf]);
+                type: "ADD", what: "TICK", symbol, payload,
+            });
         }
     }
     if (type === "OHLC") {
+        if (!data.ohlc[symbol]) data.ohlc[symbol] = {};
         data.ohlc[symbol][interval] = new CircularFloatArray(
             data.ohlcSize, OHLC.TIME, OHLC.OPEN, OHLC.HIGH, OHLC.LOW, OHLC.CLOSE, OHLC.VOLUME,
         );
+        const payload = data.ohlc[symbol][interval].buf;
         for (const channel of channels) {
             channel.postMessage({
-                type: "ADD", what: "OHLC", symbol, payload: data.ohlc[symbol][interval].buf,
-            }, [data.ohlc[symbol][interval].buf]);
+                type: "ADD", what: "OHLC", symbol, interval, payload,
+            });
         }
     }
 }
 
-export function onAdd(options: MessageType) {
+export function onAdd(options: MessageType): void {
     let {
         symbol, interval, what, payload,
     } = options;
@@ -43,6 +46,7 @@ export function onAdd(options: MessageType) {
         data.ticks[symbol] = new CircularFloatArray(payload, Tick.BID, Tick.ASK, Tick.TIME);
     }
     if (what === "OHLC") {
-        data.ticks[symbol][interval] = new CircularFloatArray(payload, OHLC.TIME, OHLC.OPEN, OHLC.HIGH, OHLC.LOW, OHLC.CLOSE, OHLC.VOLUME);
+        if (!data.ohlc[symbol]) data.ohlc[symbol] = {};
+        data.ohlc[symbol][interval] = new CircularFloatArray(payload, OHLC.TIME, OHLC.OPEN, OHLC.HIGH, OHLC.LOW, OHLC.CLOSE, OHLC.VOLUME);
     }
 }

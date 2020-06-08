@@ -43,7 +43,7 @@ class Requester implements Socket {
     order(tradeInfo: TradeInfo): Promise<string> {
         if (!tradeInfo.qty) tradeInfo.qty = 1;
         return new Promise((resolve, reject) => {
-            this.socket.send(JSON.stringify({ type: "TRADE", data: tradeInfo })).then((val) => {
+            this.socket.send(JSON.stringify({ type: "TRADE", data: tradeInfo })).then(() => {
                 this.socket.receiveTimeout = 3000;
                 this.socket.receive().then((val) => {
                     const retString = val.toString();

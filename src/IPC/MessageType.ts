@@ -2,7 +2,7 @@ import { MessagePort, Worker } from "worker_threads";
 
 
 export type MessageType = {
-    type: "ADD" | "GET" | "TERMINATE" | "TERMINATED" | "CHANNEL";
+    type: "ADD" | "GET" | "TERMINATE" | "TERMINATED" | "CHANNEL" | "READY";
     what?: "TICK" | "OHLC" | "TRADES" | "STRATEGY INFO";
     symbol?: string;
     interval? : string;

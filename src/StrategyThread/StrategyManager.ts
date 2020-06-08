@@ -22,7 +22,7 @@ class StrategyManager {
     }
 
     private async getAllStrategies(): Promise<void> {
-        const dir = "./../strategies";
+        const dir = "./strategies";
         let files = fs.readdirSync(path.resolve(__dirname, dir)) as string[];
         files = files.filter((val) => val.endsWith(".js") && !val.endsWith("Strategy.js"));
         const allPromises = files.map((file) => import(`./${dir}/${file}`));
@@ -86,6 +86,7 @@ function terminate(): void {
 
 function onSubMessage(msg: MessageType): void {
     if (msg.type === "ADD") onAdd(msg);
+    if (msg.type === "READY") channels.subscriberReady = true;
 }
 
 channels.api.on("message", (msg) => {
@@ -93,7 +94,9 @@ channels.api.on("message", (msg) => {
         channels.subscriber = msg.payload;
         channels.subscriber.on("message", onSubMessage);
         stratManager.start();
+        channels.setReady();
     }
+    if (msg.type === "READY") channels.apiReady = true;
     if (msg.type === "ADD") onAdd(msg);
     if (msg.type === "TERMINATE") terminate();
 });

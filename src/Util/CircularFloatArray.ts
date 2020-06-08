@@ -116,7 +116,7 @@ class CircularFloatArray {
     }
 
     lock(): void {
-        const index = this.length * this.mult;
+        const index = this.length * this.mult * this.namesLen;
         for (;;) {
             if (Atomics.compareExchange(this.arr, index, UNLOCKED, LOCKED) === UNLOCKED) {
                 return;
@@ -126,7 +126,7 @@ class CircularFloatArray {
     }
 
     unlock(): void {
-        const index = this.length * this.mult;
+        const index = this.length * this.mult * this.namesLen;
         if (Atomics.compareExchange(this.arr, index, LOCKED, UNLOCKED) !== LOCKED) {
             throw new Error("Mutex is in inconsistent state: unlock on unlocked Mutex.");
         }

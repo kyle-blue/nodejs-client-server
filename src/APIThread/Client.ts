@@ -29,21 +29,29 @@ class Client {
     }
 
     private initSubscriber(subPort: number, channel: MessagePort): void {
-        channels.subscriber = new Worker(path.resolve(__dirname, "Subscriber.js"), {
+        channels.subscriber = new Worker(path.resolve(__dirname, "../SubscriberThread/Subscriber.js"), {
             workerData: { protocol: PROTOCOL, ip: SERVER_IP, port: subPort },
         });
         channels.subscriber.on("message", (msg) => {
             if (msg.type === "TERMINATED") channels.subscriber = undefined;
+            if (msg.type === "READY") {
+                channels.subscriberReady = true;
+                if (channels.subscriberReady && channels.stratManagerReady) channels.setReady();
+            }
         });
         channels.subscriber.postMessage({ type: "CHANNEL", payload: channel }, [channel]);
     }
 
     private initStratManager(reqPort: number, channel: MessagePort): void {
-        channels.stratManager = new Worker(path.resolve(__dirname, "StrategyManager.js"),
+        channels.stratManager = new Worker(path.resolve(__dirname, "../StrategyThread/StrategyManager.js"),
             { workerData: { requesterParams: [PROTOCOL, SERVER_IP, reqPort] } });
 
         channels.stratManager.on("message", (msg) => {
             if (msg.type === "TERMINATED") channels.stratManager = undefined;
+            if (msg.type === "READY") {
+                channels.stratManagerReady = true;
+                if (channels.subscriberReady && channels.stratManagerReady) channels.setReady();
+            }
         });
         channels.stratManager.postMessage({ type: "CHANNEL", payload: channel }, [channel]);
     }

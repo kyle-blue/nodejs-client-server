@@ -120,6 +120,7 @@ function terminate(): void {
 
 function onStratMessage(msg: MessageType): void {
     if (msg.type === "ADD") onAdd(msg);
+    if (msg.type === "READY") channels.stratManagerReady = true;
 }
 
 channels.api.on("message", (msg) => {
@@ -127,10 +128,13 @@ channels.api.on("message", (msg) => {
         channels.stratManager = msg.payload;
         channels.stratManager.on("message", onStratMessage);
         subscriber.start(); // Can now start
+        channels.setReady();
     }
+    if (msg.type === "READY") channels.apiReady = true;
     if (msg.type === "TERMINATE") terminate();
     if (msg.type === "ADD") {
         onAdd(msg);
+        // console.log(data);
         subscriber.unprocessed.push(msg.symbol);
     }
 });
