@@ -30,17 +30,17 @@ class Wrangler {
         // @ts-ignore
         this.current = {}; /** Data regarding the current iteration */
 
-        this.wut();
+        // this.wut();
     }
-    wut() {
-        if (data.ohlc.EURUSD) {
-            if (data.ohlc.EURUSD["1 MINUTE"]) {
-                const lVal = data.ohlc.EURUSD["1 MINUTE"].lastVal.bind(data.ohlc.EURUSD["1 MINUTE"]);
-                console.log(`Last --- TIME: ${lVal(OHLC.TIME)}, OPEN: ${lVal(OHLC.OPEN)}, HIGH: ${lVal(OHLC.HIGH)}, LOW: ${lVal(OHLC.LOW)}, CLOSE: ${lVal(OHLC.CLOSE)}, VOLUME: ${lVal(OHLC.VOLUME)}, `);
-            }
-        }
-        setTimeout(this.wut.bind(this), 2000);
-    }
+    // wut() {
+    //     if (data.ohlc.EURUSD) {
+    //         if (data.ohlc.EURUSD["1 MINUTE"]) {
+    //             const lVal = data.ohlc.EURUSD["1 MINUTE"].lastVal.bind(data.ohlc.EURUSD["1 MINUTE"]);
+    //             console.log(`Last --- TIME: ${lVal(OHLC.TIME)}, OPEN: ${lVal(OHLC.OPEN)}, HIGH: ${lVal(OHLC.HIGH)}, LOW: ${lVal(OHLC.LOW)}, CLOSE: ${lVal(OHLC.CLOSE)}, VOLUME: ${lVal(OHLC.VOLUME)}, `);
+    //         }
+    //     }
+    //     setTimeout(this.wut.bind(this), 2000);
+    // }
 
 
     process(symbol: string, intervals: string[]): void {

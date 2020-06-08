@@ -17,7 +17,7 @@ export class Data {
         this.ticks = {};
         this.ohlc = {};
         this.tickArrSize = 1000; // Save max 1000 ticks per symbol;
-        this.ohlcSize = 5; // Save max 10000 ohlcs per symbol;
+        this.ohlcSize = 10000; // Save max 10000 ohlcs per symbol;
         if (other !== undefined) this.copyFrom(other);
     }
 

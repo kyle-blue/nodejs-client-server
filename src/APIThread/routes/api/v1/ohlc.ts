@@ -2,22 +2,24 @@ import { Router } from "express";
 import data from "../../../../IPC/Data";
 import channels from "../../../../IPC/Channels";
 import { addNewSharedArray } from "../../../../IPC/SharedArrayFunctions";
+import { OHLCEnum as OHLC } from "../../../../IPC/Data/types/OHLC";
 
 const router = Router();
 
 // TODO: IMPORTANT Make server and frontent request code PRISTINE. Each and every project you make is going to rely on this sould project.
 
-type OHLCQuery = {symbol: string; interval: string}
+type OHLCQuery = {symbol: string; interval: string; from: string}
 
 // Url format /api/v1/ohlc?symbol=x&interval=y&from=z
 router.get("/", (request, response, next) => {
     response.type("application/json");
-    let { symbol, interval } = request.query as OHLCQuery;
+    let { symbol, interval, from } = request.query as OHLCQuery;
 
-    if (!(symbol && interval)) {
+    if (!(symbol && interval && from)) {
         next();
         return;
     }
+
     if (!channels.isReady()) {
         response.send({ status: "NOT READY" });
     } else if (!(data.ohlc[symbol] && data.ohlc[symbol][interval])) {
@@ -29,7 +31,12 @@ router.get("/", (request, response, next) => {
         let retString = "";
         const ohlc = data.ohlc[symbol][interval];
         const len = ohlc.names.length;
-        const first = ohlc.getFirst();
+
+        const fromTime = Date.parse(from);
+        let first = ohlc.reverseFindIndex((index) => ohlc.get(index, OHLC.TIME) <= fromTime);
+        if (first === -1) first = 0;
+        if (ohlc.get(first) < fromTime && first !== ohlc.getLast()) first = ohlc.getIndex(first + 1);
+
         const last = ohlc.getLast();
         if (last < first) {
             retString += `[${ohlc.floatArr.subarray(first * len, (ohlc.length + 1) * len).join(",")}`;

@@ -184,6 +184,18 @@ class CircularFloatArray {
         return -1;
     }
 
+    /** Returns the index when the predicate is true, else -1 */
+    reverseFindIndex(predicate: (index: number, arr: CircularFloatArray) => boolean, thisArg?: any): number {
+        const currentLength = this.getCurrentLength();
+        predicate.bind(thisArg);
+        for (let i = 0, cur = this.getLast(); i < currentLength; i++, cur = this.getIndex(cur - 1)) {
+            if (predicate(cur, this)) {
+                return cur;
+            }
+        }
+        return -1;
+    }
+
     /** Returns the value when the predicate is true, else undefined */
     find(predicate: (index: number, arr: CircularFloatArray) => boolean, thisArg?: any): number {
         const currentLength = this.getCurrentLength();
