@@ -7,18 +7,28 @@ export enum TradeOp {
     SELL_STOP = 5
 }
 
+export type statusType = "PENDING" | "OPEN" | "FAILED"
+
 export type TradeInfo = {
     time: Date;
-    status: "PENDING" | "OPEN" | "FAILED";
-    id: number;
+    status: statusType;
+    ticket: number; // Essentially the id of the trade
     symbol: string;
+    interval: string;
     type: TradeOp;
     lots: number;
     price: number;
     maxSlippage: number;
-    /** Only put more than 1 if you want to split trades, else put 1 */
-    qty?: number;
+    strategy?: string;
     comment?: string;
     stopLoss?: number;
     takeProfit?: number;
+    isReal?: boolean;
 }
+
+export type CloseTradeInfo = {
+    ticket: number;
+    lots: number;
+    maxSlippage: number;
+    price: number;
+};

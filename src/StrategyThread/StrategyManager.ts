@@ -6,6 +6,7 @@ import Requester from "./Requester";
 import channels from "../IPC/Channels";
 import { onAdd } from "../IPC/SharedArrayFunctions";
 import { MessageType } from "../IPC/MessageType";
+import { TradeInfo, CloseTradeInfo } from "./TradeInfoTypes";
 
 channels.api = parentPort;
 class StrategyManager {
@@ -17,7 +18,6 @@ class StrategyManager {
         this.running = false;
         // @ts-ignore
         this.requester = new Requester(...workerData.requesterParams);
-
         this.strategies = [];
     }
 
@@ -55,6 +55,7 @@ class StrategyManager {
             for (const strat of this.strategies) {
                 strat.update();
                 for (let i = 0; i < strat.pendingTrades.length; i++) this.executeTrade(strat);
+                for (let i = 0; i < strat.closeTrades.length; i++) this.closeTrade(strat);
             }
 
             setTimeout(this.eventLoop.bind(this), 0);
@@ -63,13 +64,32 @@ class StrategyManager {
 
     executeTrade(strat: Strategy): void {
         const tradeInfo = strat.pendingTrades.pop();
-        this.requester.order(tradeInfo).then(() => {
-            strat.openTrades.push({ ...tradeInfo, status: "OPEN" });
-        }).catch(() => {
-            strat.failedTrades.push({ ...tradeInfo, status: "FAILED" });
+        this.requester.openTrade(tradeInfo).then((ticketNum: number) => {
+            strat.openTrades.push({ ...tradeInfo, ticket: ticketNum, status: "OPEN" });
+        }).catch((reason: Error) => {
+            strat.failedTrades.push({ ...tradeInfo, status: "FAILED", comment: reason.message });
         });
     }
+
+    closeTrade(strat: Strategy): void {
+        const tradeInfo = strat.closeTrades.pop();
+        function close(trade: CloseTradeInfo): void {
+            this.requester.close(trade).then(() => {
+                const index = strat.openTrades.findIndex((val) => val.ticket === trade.ticket);
+                strat.openTrades.splice(index, 1);
+            }).catch((reason) => {
+                console.error(`Could not remove trade with ticketNum: ${ticket} --- Reason: ${reason} --- Retrying...`);
+                if (reason !== "TRADE DOES NOT EXIST") setTimeout(close.bind(this), 100);
+            });
+        }
+        close.bind(this)(tradeInfo);
+    }
 }
+
+
+
+
+
 
 const stratManager = new StrategyManager();
 
