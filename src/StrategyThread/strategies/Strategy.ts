@@ -42,9 +42,6 @@ class Strategy {
             if (isFilled) {
                 this.pendingTrades[i].status = "OPEN";
                 this.openTrades.push(...this.pendingTrades.splice(i, 1));
-                console.log("FILLED");
-                console.log("open trades: ", this.openTrades);
-                console.log("pending trades: ", this.pendingTrades);
             }
         }
     }
@@ -67,9 +64,6 @@ class Strategy {
             //TODO: update the database
             if (isClosed) {
                 this.openTrades.splice(i, 1);
-                console.log("CLOSED");
-                console.log("open trades: ", this.openTrades);
-                console.log("pending trades: ", this.pendingTrades);
             }
         }
     }
