@@ -8,7 +8,7 @@ class EMACross extends Strategy {
         super();
         this.wot = "ddwad";
         setTimeout(() => {
-            this.openTrade("EURUSD", "1 MINUTE", TradeOp.SELL, 1.2);
+            this.openTrade("EURUSD", "1 MINUTE", TradeOp.SELL_LIMIT, 1.2, this.getCurrentPriceForTradeOp("EURUSD", TradeOp.SELL_LIMIT) + 0.002, this.getCurrentPriceForTradeOp("EURUSD", TradeOp.SELL_LIMIT) + 0.005, this.getCurrentPriceForTradeOp("EURUSD", TradeOp.SELL_LIMIT) - 0.005);
         }, 1000);
 
         setTimeout(() => {
@@ -23,7 +23,7 @@ class EMACross extends Strategy {
         // }, 3000);
 
         setTimeout(() => {
-            this.modifyTrade(this.openTrades[0], this.getCurrentPriceForTradeOp(this.openTrades[0].symbol, this.openTrades[0].type) + 0.005, this.getCurrentPriceForTradeOp(this.openTrades[0].symbol, this.openTrades[0].type) - 0.005);
+            this.modifyTrade(this.pendingTrades[0], undefined, undefined, this.pendingTrades[0].price + 0.001);
         }, 3000);
 
 

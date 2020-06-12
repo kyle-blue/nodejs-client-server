@@ -52,8 +52,8 @@ class Strategy {
 
     modifyTrade(trade: TradeInfo, stopLoss?: number, takeProfit?: number, price?: number): void {
         if (!price) price = trade.price;
-        if (!price) stopLoss = trade.stopLoss || -1;
-        if (!price) takeProfit = trade.takeProfit || -1;
+        if (!stopLoss) stopLoss = trade.stopLoss || -1;
+        if (!takeProfit) takeProfit = trade.takeProfit || -1;
         const maxSlippage = this.calcMaxSlippage();
         this.requestedTrades.push({
             request: "MODIFY", ticket: trade.ticket, stopLoss, takeProfit, price, maxSlippage,
