@@ -7,7 +7,8 @@ export enum TradeOp {
     SELL_STOP = 5
 }
 
-export type statusType = "PENDING" | "OPEN" | "FAILED"
+/** REQUESTED means a trade has not yet been processed, PENDING means a stop or limit order has not yet been filled */
+export type statusType = "REQUESTED" | "PENDING" | "OPEN" | "FAILED"
 
 export type TradeInfo = {
     time: Date;
@@ -20,10 +21,16 @@ export type TradeInfo = {
     price: number;
     maxSlippage: number;
     strategy?: string;
+    profit?: number;
     comment?: string;
     stopLoss?: number;
     takeProfit?: number;
     isReal?: boolean;
+}
+
+
+export interface TradeRequest extends Partial<TradeInfo> {
+    request: "OPEN" | "MODIFY" | "CLOSE";
 }
 
 export type CloseTradeInfo = {
@@ -32,3 +39,12 @@ export type CloseTradeInfo = {
     maxSlippage: number;
     price: number;
 };
+
+
+export type ModifyTradeInfo = {
+    ticket: number;
+    price: number;
+    stopLoss: number;
+    takeProfit: number;
+};
+

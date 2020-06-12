@@ -1,11 +1,27 @@
 import { Request as ZmqRequest } from "zeromq";
 import Socket from "../Util/Socket";
-import { TradeOp, TradeInfo, CloseTradeInfo } from "./TradeInfoTypes";
+import {
+    TradeOp, TradeInfo, CloseTradeInfo, ModifyTradeInfo,
+} from "./TradeInfoTypes";
 import data from "../IPC/Data";
 import { TickEnum as Tick } from "../IPC/Data/types/Tick";
 
-type OpenTradeReturnType = {
+export type OpenTradeReturnType = {
     ticket: number;
+    openTime?: string;
+    openPrice?: number;
+    errorCode?: number;
+    errorDesc?: string;
+}
+
+export type CloseTradeReturnType = {
+    closeTime?: string;
+    closePrice?: number;
+    errorCode?: number;
+    errorDesc?: string;
+}
+
+export type ModifyTradeReturnType = {
     errorCode?: number;
     errorDesc?: string;
 }
@@ -50,15 +66,15 @@ class Requester implements Socket {
     }
 
 
-    /** On success, the promise returns the ticket number, else, the promise returns the error code and description */
-    openTrade(tradeInfo: TradeInfo): Promise<Error | number> {
+    /** On success, the promise returns an object with ticket number, openTime, openPrice, else, the promise returns the error code and description */
+    openTrade(tradeInfo: TradeInfo): Promise<Error | OpenTradeReturnType> {
         return new Promise((resolve, reject) => {
             this.socket.send(JSON.stringify({ type: "OPEN TRADE", data: tradeInfo })).then(() => {
                 this.socket.receiveTimeout = 3000;
                 this.socket.receive().then((val) => {
                     const ret: OpenTradeReturnType = JSON.parse(val.toString());
                     if (ret.ticket !== -1) {
-                        resolve(ret.ticket);
+                        resolve(ret);
                     } else {
                         reject(Error(`Error Code: ${ret.errorCode} --- ${ret.errorDesc}`));
                     }
@@ -69,15 +85,38 @@ class Requester implements Socket {
         });
     }
 
-    closeTrade(tradeInfo: CloseTradeInfo): Promise<Error | number> {
+    /** On success, the promise returns an object with closeTime and closePrice, else, the promise returns the error code and description */
+    closeTrade(tradeInfo: CloseTradeInfo): Promise<Error | CloseTradeReturnType> {
         return new Promise((resolve, reject) => {
             this.socket.send(JSON.stringify({ type: "CLOSE TRADE", data: tradeInfo })).then(() => {
                 this.socket.receiveTimeout = 3000;
                 this.socket.receive().then((val) => {
                     const ret: CloseTradeReturnType = JSON.parse(val.toString());
+                    if (!ret.errorCode) {
+                        resolve(ret);
+                    } else {
+                        reject(Error(`Error Code: ${ret.errorCode} --- ${ret.errorDesc}`));
+                    }
+                }).catch(() => {
+                    reject(Error("Message not received within 3 seconds"));
+                }).finally(() => { this.socket.receiveTimeout = -1; });
+            });
+        });
+    }
 
-                    console.log(ret);
-                    //
+
+    /** On success, the promise returns nothing, else, the promise returns the error code and description */
+    modifyTrade(tradeInfo: ModifyTradeInfo): Promise<Error | number> {
+        return new Promise((resolve, reject) => {
+            this.socket.send(JSON.stringify({ type: "MODIFY TRADE", data: tradeInfo })).then(() => {
+                this.socket.receiveTimeout = 3000;
+                this.socket.receive().then((val) => {
+                    const ret: ModifyTradeReturnType = JSON.parse(val.toString());
+                    if (!ret.errorCode) {
+                        resolve();
+                    } else {
+                        reject(Error(`Error Code: ${ret.errorCode} --- ${ret.errorDesc}`));
+                    }
                 }).catch(() => {
                     reject(Error("Message not received within 3 seconds"));
                 }).finally(() => { this.socket.receiveTimeout = -1; });

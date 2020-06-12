@@ -2,11 +2,13 @@ import { workerData, parentPort } from "worker_threads";
 import fs from "fs";
 import path from "path";
 import Strategy from "./strategies/Strategy";
-import Requester from "./Requester";
+import Requester, { OpenTradeReturnType, CloseTradeReturnType } from "./Requester";
 import channels from "../IPC/Channels";
 import { onAdd } from "../IPC/SharedArrayFunctions";
 import { MessageType } from "../IPC/MessageType";
-import { TradeInfo, CloseTradeInfo } from "./TradeInfoTypes";
+import {
+    TradeInfo, CloseTradeInfo, TradeRequest, ModifyTradeInfo, TradeOp,
+} from "./TradeInfoTypes";
 
 channels.api = parentPort;
 class StrategyManager {
@@ -54,35 +56,65 @@ class StrategyManager {
         if (this.running) {
             for (const strat of this.strategies) {
                 strat.update();
-                for (let i = 0; i < strat.pendingTrades.length; i++) this.executeTrade(strat);
-                for (let i = 0; i < strat.closeTrades.length; i++) this.closeTrade(strat);
+                for (let i = 0; i < strat.requestedTrades.length; i++) this.executeTrade(strat, strat.requestedTrades.pop());
+                // for (let i = strat.openTrades.length - 1; i >= 0; i--) this.checkStopAndTakeProfit(strat, i);
+                // for (let i = strat.pendingTrades.length - 1; i >= 0; i--) this.checkFilled(strat, i);
             }
 
             setTimeout(this.eventLoop.bind(this), 0);
         }
     }
 
-    executeTrade(strat: Strategy): void {
-        const tradeInfo = strat.pendingTrades.pop();
-        this.requester.openTrade(tradeInfo).then((ticketNum: number) => {
-            strat.openTrades.push({ ...tradeInfo, ticket: ticketNum, status: "OPEN" });
-        }).catch((reason: Error) => {
-            strat.failedTrades.push({ ...tradeInfo, status: "FAILED", comment: reason.message });
-        });
-    }
-
-    closeTrade(strat: Strategy): void {
-        const tradeInfo = strat.closeTrades.pop();
-        function close(trade: CloseTradeInfo): void {
-            this.requester.close(trade).then(() => {
-                const index = strat.openTrades.findIndex((val) => val.ticket === trade.ticket);
-                strat.openTrades.splice(index, 1);
-            }).catch((reason) => {
-                console.error(`Could not remove trade with ticketNum: ${ticket} --- Reason: ${reason} --- Retrying...`);
-                if (reason !== "TRADE DOES NOT EXIST") setTimeout(close.bind(this), 100);
+    executeTrade(strat: Strategy, tradeInfo: TradeRequest): void {
+        if (tradeInfo.request === "OPEN") {
+            const trade = tradeInfo as TradeInfo;
+            this.requester.openTrade(trade).then((ret) => {
+                const { ticket, openPrice, openTime } = ret as OpenTradeReturnType;
+                if (trade.type === TradeOp.BUY || trade.type === TradeOp.SELL) {
+                    strat.openTrades.push({
+                        ...trade, ticket, status: "OPEN", price: openPrice, time: new Date(openTime),
+                    });
+                } else {
+                    strat.pendingTrades.push({
+                        ...trade, ticket, status: "PENDING", price: openPrice, time: new Date(openTime),
+                    });
+                }
+            }).catch((err: Error) => {
+                console.error(`Could not open trade --- Reason: ${err.message}`);
             });
         }
-        close.bind(this)(tradeInfo);
+
+        if (tradeInfo.request === "CLOSE") {
+            const trade = tradeInfo as CloseTradeInfo;
+            this.requester.closeTrade(trade).then((ret) => {
+                const { closePrice, closeTime } = ret as CloseTradeReturnType;
+                const index = strat.openTrades.findIndex((val) => val.ticket === trade.ticket);
+                //TODO:  updateTradeInfoInDatabase(ticketNum, closePrice, closeTime)
+                strat.openTrades.splice(index, 1);
+            }).catch((err: Error) => {
+                console.error(`Could not remove trade with ticketNum: ${trade.ticket} --- Reason: ${err.message}`);
+                // if (reason !== "TRADE DOES NOT EXIST") setTimeout(close.bind(this), 100);
+            });
+        }
+
+        if (tradeInfo.request === "MODIFY") {
+            const trade = tradeInfo as ModifyTradeInfo;
+            this.requester.modifyTrade(trade).then(() => {
+                const openIndex = strat.openTrades.findIndex((val) => val.ticket === trade.ticket);
+                const pendingIndex = strat.pendingTrades.findIndex((val) => val.ticket === trade.ticket);
+                if (pendingIndex !== -1) { // Can only trade price if trade is pending
+                    strat.pendingTrades[pendingIndex].price = trade.price;
+                    strat.pendingTrades[pendingIndex].stopLoss = trade.stopLoss;
+                    strat.pendingTrades[pendingIndex].takeProfit = trade.takeProfit;
+                } else {
+                    console.log("the trade", trade, "the index", openIndex);
+                    strat.openTrades[openIndex].stopLoss = trade.stopLoss;
+                    strat.openTrades[openIndex].takeProfit = trade.takeProfit;
+                }
+            }).catch((err: Error) => {
+                console.error(`Could not modify trade with ticketNum: ${trade.ticket} --- Reason: ${err.message}`);
+            });
+        }
     }
 }
 
