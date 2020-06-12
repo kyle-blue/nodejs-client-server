@@ -3,7 +3,7 @@ import {
 } from "../TradeInfoTypes";
 import data from "../../IPC/Data";
 import CircularList from "../../Util/CircularList";
-import { TickEnum } from "../../IPC/Data/types/Tick";
+import { TickEnum as Tick } from "../../IPC/Data/types/Tick";
 
 
 
@@ -26,9 +26,65 @@ class Strategy {
         this.name = "UNKNOWN";
     }
 
+    /**  Check whether stop and limit orders of pendingTrades have been filled */
+    private checkStopAndLimitOrders() {
+        for (let i = this.pendingTrades.length - 1; i >= 0; i--) {
+            const trade = this.pendingTrades[i];
+            const lastAsk = data.ticks[trade.symbol].lastVal(Tick.ASK);
+            const lastBid = data.ticks[trade.symbol].lastVal(Tick.BID);
+            let isFilled = false;
+            if (trade.type === TradeOp.BUY_LIMIT && lastAsk <= trade.price) isFilled = true;
+            if (trade.type === TradeOp.BUY_STOP && lastAsk >= trade.price) isFilled = true;
+
+            if (trade.type === TradeOp.SELL_LIMIT && lastBid >= trade.price) isFilled = true;
+            if (trade.type === TradeOp.SELL_STOP && lastBid <= trade.price) isFilled = true;
+
+            if (isFilled) {
+                this.pendingTrades[i].status = "OPEN";
+                this.openTrades.push(...this.pendingTrades.splice(i, 1));
+                console.log("FILLED");
+                console.log("open trades: ", this.openTrades);
+                console.log("pending trades: ", this.pendingTrades);
+            }
+        }
+    }
+
+    /**  Check whether stops and takeprofits of openTrades have been hit */
+    private checkStopsAndTakeProfits() {
+        for (let i = this.openTrades.length - 1; i >= 0; i--) {
+            const trade = this.openTrades[i];
+            const lastAsk = data.ticks[trade.symbol].lastVal(Tick.ASK);
+            const lastBid = data.ticks[trade.symbol].lastVal(Tick.BID);
+            let isClosed = false;
+
+            if (trade.type === TradeOp.BUY_LIMIT || trade.type === TradeOp.BUY_STOP || trade.type === TradeOp.BUY) {
+                if (trade.takeProfit && lastBid >= trade.takeProfit) isClosed = true;
+                if (trade.stopLoss && lastBid <= trade.stopLoss) isClosed = true;
+            } else { // We are selling
+                if (trade.takeProfit && lastAsk <= trade.takeProfit) isClosed = true;
+                if (trade.stopLoss && lastAsk >= trade.stopLoss) isClosed = true;
+            }
+            //TODO: update the database
+            if (isClosed) {
+                this.openTrades.splice(i, 1);
+                console.log("CLOSED");
+                console.log("open trades: ", this.openTrades);
+                console.log("pending trades: ", this.pendingTrades);
+            }
+        }
+    }
+
+    /** Updates current profit/loss in openTrades */
+    private updateProfits() {
+        for (let i = 0; i < this.openTrades.length; i++) {}
+    }
+
+
     update(): void {
-        // Update openTrades current profit etc
-        // Check which symbols have good enough volatility and liquidity to trade. Only trade them
+        this.updateProfits();
+        this.checkStopAndLimitOrders();
+        this.checkStopsAndTakeProfits();
+        // Check which symbols have good enough volatility and liquidity to trade. Only trade them (compare spread to atr?, and look at volume compared to average. This could be done in wrangler to be global (per interval, or mainly for minutes and below))
     }
 
     calcMaxSlippage(): number {
@@ -63,11 +119,11 @@ class Strategy {
     /** Returns the current price for a symbol, depending on wether it is a buy or sell trade (BID or ASK returned) */
     getCurrentPriceForTradeOp(symbol: string, op: TradeOp, isBuying = true): number {
         if (op === TradeOp.BUY || op === TradeOp.BUY_LIMIT || op === TradeOp.BUY_STOP) {
-            if (isBuying) return data.ticks[symbol].lastVal(TickEnum.ASK);
-            return data.ticks[symbol].lastVal(TickEnum.BID);
+            if (isBuying) return data.ticks[symbol].lastVal(Tick.ASK);
+            return data.ticks[symbol].lastVal(Tick.BID);
         }
-        if (isBuying) return data.ticks[symbol].lastVal(TickEnum.BID);
-        return data.ticks[symbol].lastVal(TickEnum.ASK);
+        if (isBuying) return data.ticks[symbol].lastVal(Tick.BID);
+        return data.ticks[symbol].lastVal(Tick.ASK);
     }
 
 
