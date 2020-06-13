@@ -7,6 +7,8 @@ import Wrangler from "./Wrangler";
 import channels from "../IPC/Channels";
 import { addNewSharedArray, onAdd } from "../IPC/SharedArrayFunctions";
 import { MessageType } from "../IPC/MessageType";
+import { SymbolInfo as SI } from "../IPC/Data/types/SymbolInfo";
+import account from "../IPC/Account";
 
 
 type SymbolInfo = {
@@ -14,10 +16,19 @@ type SymbolInfo = {
     bid: number;
     ask: number;
     time: string;
+    tickValue: number;
 }
+
+type AccountInfo = {
+    equity: number;
+    balance: number;
+    freeMargin: number;
+}
+
 type JsonData = {
     type: string;
     symbols: Array<SymbolInfo>;
+    account: AccountInfo;
 }
 type SymbolName = string;
 
@@ -76,16 +87,21 @@ class Subscriber implements Socket {
             const retString = ret.toString();
             const json: JsonData = JSON.parse(retString);
             if (json.type === "MARKET_INFO") {
-                const { symbols } = json;
+                const { symbols, account: accInfo } = json;
                 for (const symbol of symbols) {
                     const {
-                        symbol: name, bid, ask, time,
+                        symbol: name, bid, ask, time, tickValue,
                     } = symbol;
                     if (!ticks[name]) {
-                        addNewSharedArray({
-                            type: "TICK", channels: channels.getOtherChannels(), symbol: name,
-                        });
+                        addNewSharedArray({ type: "SYMBOL INFO", channels: channels.getOtherChannels(), symbol: name });
+                        addNewSharedArray({ type: "TICK", channels: channels.getOtherChannels(), symbol: name });
                     }
+                    data.symbolInfo[name].set(0, tickValue, SI.TICK_VALUE);
+
+                    account.setBalance(accInfo.balance);
+                    account.setEquity(accInfo.equity);
+                    account.setFreeMargin(accInfo.freeMargin);
+
                     ticks[name].lock();
                     ticks[name].push(bid, ask, Date.parse(time));
                     ticks[name].unlock();
@@ -127,6 +143,7 @@ channels.api.on("message", (msg) => {
     if (msg.type === "CHANNEL") {
         channels.stratManager = msg.payload;
         channels.stratManager.on("message", onStratMessage);
+        addNewSharedArray({ type: "ACCOUNT INFO", channels: channels.getOtherChannels() });
         subscriber.start(); // Can now start
         channels.setReady();
     }

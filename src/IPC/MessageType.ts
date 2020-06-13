@@ -3,7 +3,7 @@ import { MessagePort, Worker } from "worker_threads";
 
 export type MessageType = {
     type: "ADD" | "GET" | "TERMINATE" | "TERMINATED" | "CHANNEL" | "READY";
-    what?: "TICK" | "OHLC" | "TRADES" | "STRATEGY INFO";
+    what?: "TICK" | "OHLC" | "TRADES" | "STRATEGY INFO" | "SYMBOL INFO" | "ACCOUNT INFO";
     symbol?: string;
     interval? : string;
     /** This will be the buffer when adding a buffer */
