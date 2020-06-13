@@ -7,7 +7,7 @@ import Wrangler from "./Wrangler";
 import channels from "../IPC/Channels";
 import { addNewSharedArray, onAdd } from "../IPC/SharedArrayFunctions";
 import { MessageType } from "../IPC/MessageType";
-import { SymbolInfo as SI } from "../IPC/Data/types/SymbolInfo";
+import { SymbolInfo as SI, SymbolInfo } from "../IPC/Data/types/SymbolInfo";
 import account from "../IPC/Account";
 
 
@@ -93,8 +93,10 @@ class Subscriber implements Socket {
                         symbol: name, bid, ask, time, tickValue,
                     } = symbol;
                     if (!ticks[name]) {
-                        addNewSharedArray({ type: "SYMBOL INFO", channels: channels.getOtherChannels(), symbol: name });
                         addNewSharedArray({ type: "TICK", channels: channels.getOtherChannels(), symbol: name });
+                    }
+                    if (!SymbolInfo[name]) {
+                        addNewSharedArray({ type: "SYMBOL INFO", channels: channels.getOtherChannels(), symbol: name });
                     }
                     data.symbolInfo[name].set(0, tickValue, SI.TICK_VALUE);
 

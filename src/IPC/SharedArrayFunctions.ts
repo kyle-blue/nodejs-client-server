@@ -50,7 +50,7 @@ export function addNewSharedArray(options: AddNewSharedArrayOptions) {
 
     if (type === "ACCOUNT INFO") {
         account.infoArray = new CircularFloatArray(
-            1, AI.EQUITY, AI.BALANCE, AI.FREE_MARGIN, AI.LEVERAGE, AI.COMMISSION,
+            1, AI.EQUITY, AI.BALANCE, AI.FREE_MARGIN, AI.LEVERAGE, AI.COMMISSION, AI.BASE_COMMISSION,
         );
         const payload = account.infoArray.buf;
         for (const channel of channels) {
@@ -76,6 +76,6 @@ export function onAdd(options: MessageType): void {
         data.symbolInfo[symbol] = new CircularFloatArray(payload, SI.MIN_LOT, SI.TICK_SIZE, SI.TICK_VALUE);
     }
     if (what === "ACCOUNT INFO") {
-        account.infoArray = new CircularFloatArray(payload, AI.EQUITY, AI.BALANCE, AI.FREE_MARGIN, AI.LEVERAGE, AI.COMMISSION);
+        account.infoArray = new CircularFloatArray(payload, AI.EQUITY, AI.BALANCE, AI.FREE_MARGIN, AI.LEVERAGE, AI.COMMISSION, AI.BASE_COMMISSION);
     }
 }

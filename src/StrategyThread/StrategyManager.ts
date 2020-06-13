@@ -9,6 +9,7 @@ import { MessageType } from "../IPC/MessageType";
 import {
     TradeInfo, CloseTradeInfo, TradeRequest, ModifyTradeInfo, TradeOp,
 } from "./TradeInfoTypes";
+import account from "../IPC/Account";
 
 channels.api = parentPort;
 class StrategyManager {
@@ -47,13 +48,16 @@ class StrategyManager {
 
     start(): void {
         this.running = true;
-        if (this.strategies.length === 0) {
-            this.getAllStrategies().then(() => setTimeout(this.eventLoop.bind(this), 0));
-        } else setTimeout(this.eventLoop.bind(this), 0);
+        this.requester.getStaticInfo().then(() => {
+            if (this.strategies.length === 0) {
+                this.getAllStrategies().then(() => setTimeout(this.eventLoop.bind(this), 0));
+            } else setTimeout(this.eventLoop.bind(this), 0);
+        });
     }
 
     private eventLoop(): void {
         if (this.running) {
+            account.updateCommission();
             for (const strat of this.strategies) {
                 strat.update();
                 for (let i = 0; i < strat.requestedTrades.length; i++) this.executeTrade(strat, strat.requestedTrades.pop());
@@ -136,8 +140,16 @@ function terminate(): void {
     }, 10);
 }
 
+let addedItems = { "ACCOUNT INFO": false, "SYMBOL INFO": false };
 function onSubMessage(msg: MessageType): void {
-    if (msg.type === "ADD") onAdd(msg);
+    if (msg.type === "ADD") {
+        onAdd(msg);
+        if (msg.what === "ACCOUNT INFO" || msg.what === "SYMBOL INFO") addedItems[msg.what] = true;
+        if (addedItems["ACCOUNT INFO"] && addedItems["SYMBOL INFO"]) {
+            stratManager.start();
+            channels.setReady();
+        }
+    }
     if (msg.type === "READY") channels.subscriberReady = true;
 }
 
@@ -145,8 +157,6 @@ channels.api.on("message", (msg) => {
     if (msg.type === "CHANNEL") {
         channels.subscriber = msg.payload;
         channels.subscriber.on("message", onSubMessage);
-        stratManager.start();
-        channels.setReady();
     }
     if (msg.type === "READY") channels.apiReady = true;
     if (msg.type === "ADD") onAdd(msg);

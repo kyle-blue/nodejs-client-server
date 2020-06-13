@@ -4,7 +4,11 @@ import {
     TradeOp, TradeInfo, CloseTradeInfo, ModifyTradeInfo,
 } from "./TradeInfoTypes";
 import data from "../IPC/Data";
-import { TickEnum as Tick } from "../IPC/Data/types/Tick";
+import { TickEnum as Tick, TickEnum } from "../IPC/Data/types/Tick";
+import account from "../IPC/Account";
+import { SymbolInfo as SI } from "../IPC/Data/types/SymbolInfo";
+import { addNewSharedArray } from "../IPC/SharedArrayFunctions";
+import channels from "../IPC/Channels";
 
 export type OpenTradeReturnType = {
     ticket: number;
@@ -26,6 +30,11 @@ export type ModifyTradeReturnType = {
     errorDesc?: string;
 }
 
+export type StaticInfoReturnType = {
+    symbols: {name: string; tickSize: number; minLot: number}[];
+    account: {leverage: number; commission: number};
+}
+
 class Requester implements Socket {
     socket: ZmqRequest;
 
@@ -41,30 +50,31 @@ class Requester implements Socket {
         this.socket.connect(`${this.protocol}://${this.ip}:${this.port}`);
         this.socket.linger = 0;
         console.log(`Requester connected to ${this.protocol}://${this.ip}:${this.port}`);
-
-        // setTimeout(() => {
-        //     this.openTrade({
-        //         ticket: -1,
-        //         symbol: "EURUSD",
-        //         type: TradeOp.BUY,
-        //         lots: 1,
-        //         price: data.ticks.EURUSD.lastVal(Tick.BID),
-        //         maxSlippage: 100,
-        //         stopLoss: data.ticks.EURUSD.lastVal(Tick.BID) - 0.004,
-        //         takeProfit: data.ticks.EURUSD.lastVal(Tick.BID) + 0.004,
-        //         interval: "1 MINUTE",
-        //         comment: "Testing",
-        //         status: "PENDING",
-        //         time: new Date(),
-        //     })
-        //         .then((val) => {
-        //             console.log("Wow, you actually did it");
-        //         }).catch(() => {
-        //             console.log("Bruh moment right here");
-        //         });
-        // }, 1000);
     }
 
+    getStaticInfo(): Promise<Error | void> {
+        return new Promise((resolve, reject) => {
+            this.socket.send(JSON.stringify({ type: "GET STATIC INFO" })).then(() => {
+                this.socket.receiveTimeout = 3000;
+                this.socket.receive().then((val) => {
+                    const ret: StaticInfoReturnType = JSON.parse(val.toString());
+                    const { symbols, account: accInfo } = ret;
+                    for (const symbol of symbols) {
+                        if (!data.symbolInfo[symbol.name]) {
+                            addNewSharedArray({ type: "SYMBOL INFO", channels: channels.getOtherChannels(), symbol: symbol.name });
+                        }
+                        data.symbolInfo[symbol.name].set(0, symbol.minLot, SI.MIN_LOT);
+                        data.symbolInfo[symbol.name].set(0, symbol.tickSize, SI.TICK_SIZE);
+                    }
+                    account.setLeverage(accInfo.leverage);
+                    account.setBaseCommission(accInfo.commission);
+                    account.updateCommission();
+                }).catch(() => {
+                    reject(Error("Message not received within 3 seconds"));
+                }).finally(() => { this.socket.receiveTimeout = -1; });
+            });
+        });
+    }
 
     /** On success, the promise returns an object with ticket number, openTime, openPrice, else, the promise returns the error code and description */
     openTrade(tradeInfo: TradeInfo): Promise<Error | OpenTradeReturnType> {

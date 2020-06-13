@@ -2,6 +2,8 @@
 // sharing between worker threads. Gonna need messaging.
 
 import CircularFloatArray from "../Util/CircularFloatArray";
+import data from "./Data";
+import { TickEnum } from "./Data/types/Tick";
 
 const SYSTEM = {
     MaxDrawDownPerWeek: "6%",
@@ -15,7 +17,7 @@ const SYSTEM = {
 
 // TODO: store balance history in db
 export enum AI {
-    /** dynamic */ EQUITY, BALANCE, FREE_MARGIN, /** static */ LEVERAGE, COMMISSION
+    /** dynamic */ EQUITY, BALANCE, FREE_MARGIN, /** static */ LEVERAGE, COMMISSION, BASE_COMMISSION
 }
 
 
@@ -27,6 +29,12 @@ export class Account {
     constructor() {
         this.infoArray = undefined; // Dynamic
         this.system = SYSTEM; // HardCoded
+    }
+
+    updateCommission(): void {
+        if (data.ticks.GBPUSDp && data.ticks.GBPUSDp.length !== 0) {
+            this.setCommission(this.getBaseCommission() / data.ticks.GBPUSDp.lastVal(TickEnum.ASK));
+        }
     }
 
     getEquity(): number { return this.infoArray.get(0, AI.EQUITY); }
@@ -42,7 +50,10 @@ export class Account {
     setLeverage(val: number): void { return this.infoArray.set(0, val, AI.LEVERAGE); }
 
     getCommission(): number { return this.infoArray.get(0, AI.COMMISSION); }
-    setCommision(val: number): void { return this.infoArray.set(0, val, AI.COMMISSION); }
+    setCommission(val: number): void { return this.infoArray.set(0, val, AI.COMMISSION); }
+
+    getBaseCommission(): number { return this.infoArray.get(0, AI.BASE_COMMISSION); }
+    setBaseCommission(val: number): void { return this.infoArray.set(0, val, AI.BASE_COMMISSION); }
 }
 
 const instance = new Account();
