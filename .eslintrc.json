@@ -24,6 +24,8 @@
             "warn",
             "always"
         ],
+        "no-continue": "off",
+        "no-loop-func": "off",
         "quotes": [
             "warn",
             "double"

@@ -97,7 +97,10 @@ class StrategyManager {
                 strat.openTrades.splice(index, 1);
             }).catch((err: Error) => {
                 console.error(`Could not remove trade with ticketNum: ${trade.ticket} --- Reason: ${err.message}`);
-                // if (reason !== "TRADE DOES NOT EXIST") setTimeout(close.bind(this), 100);
+                if (err.message === "4108") {
+                    const index = strat.openTrades.findIndex((val) => val.ticket === trade.ticket);
+                    strat.openTrades.splice(index, 1);
+                }
             });
         }
 
@@ -111,12 +114,15 @@ class StrategyManager {
                     strat.pendingTrades[pendingIndex].stopLoss = trade.stopLoss;
                     strat.pendingTrades[pendingIndex].takeProfit = trade.takeProfit;
                 } else {
-                    console.log("the trade", trade, "the index", openIndex);
                     strat.openTrades[openIndex].stopLoss = trade.stopLoss;
                     strat.openTrades[openIndex].takeProfit = trade.takeProfit;
                 }
             }).catch((err: Error) => {
                 console.error(`Could not modify trade with ticketNum: ${trade.ticket} --- Reason: ${err.message}`);
+                if (err.message === "4108") {
+                    const index = strat.openTrades.findIndex((val) => val.ticket === trade.ticket);
+                    strat.openTrades.splice(index, 1);
+                }
             });
         }
     }
@@ -140,17 +146,13 @@ function terminate(): void {
     }, 10);
 }
 
-let addedItems = { "ACCOUNT INFO": false, "SYMBOL INFO": false };
 function onSubMessage(msg: MessageType): void {
-    if (msg.type === "ADD") {
-        onAdd(msg);
-        if (msg.what === "ACCOUNT INFO" || msg.what === "SYMBOL INFO") addedItems[msg.what] = true;
-        if (addedItems["ACCOUNT INFO"] && addedItems["SYMBOL INFO"]) {
-            stratManager.start();
-            channels.setReady();
-        }
+    if (msg.type === "ADD") onAdd(msg);
+    if (msg.type === "READY") {
+        channels.subscriberReady = true;
+        stratManager.start();
+        channels.setReady();
     }
-    if (msg.type === "READY") channels.subscriberReady = true;
 }
 
 channels.api.on("message", (msg) => {

@@ -7,7 +7,7 @@ import Wrangler from "./Wrangler";
 import channels from "../IPC/Channels";
 import { addNewSharedArray, onAdd } from "../IPC/SharedArrayFunctions";
 import { MessageType } from "../IPC/MessageType";
-import { SymbolInfo as SI, SymbolInfo } from "../IPC/Data/types/SymbolInfo";
+import { SymbolInfo as SI } from "../IPC/Data/types/SymbolInfo";
 import account from "../IPC/Account";
 
 
@@ -95,14 +95,15 @@ class Subscriber implements Socket {
                     if (!ticks[name]) {
                         addNewSharedArray({ type: "TICK", channels: channels.getOtherChannels(), symbol: name });
                     }
-                    if (!SymbolInfo[name]) {
-                        addNewSharedArray({ type: "SYMBOL INFO", channels: channels.getOtherChannels(), symbol: name });
+                    if (data.symbolInfo[name]) {
+                        data.symbolInfo[name].set(0, tickValue, SI.TICK_VALUE);
                     }
-                    data.symbolInfo[name].set(0, tickValue, SI.TICK_VALUE);
+                    if (account.infoArray) {
+                        account.setBalance(accInfo.balance);
+                        account.setEquity(accInfo.equity);
+                        account.setFreeMargin(accInfo.freeMargin);
+                    }
 
-                    account.setBalance(accInfo.balance);
-                    account.setEquity(accInfo.equity);
-                    account.setFreeMargin(accInfo.freeMargin);
 
                     ticks[name].lock();
                     ticks[name].push(bid, ask, Date.parse(time));
@@ -147,7 +148,10 @@ channels.api.on("message", (msg) => {
         channels.stratManager.on("message", onStratMessage);
         addNewSharedArray({ type: "ACCOUNT INFO", channels: channels.getOtherChannels() });
         subscriber.start(); // Can now start
-        channels.setReady();
+        setTimeout(function readyFunction() {
+            if (subscriber.isReady) channels.setReady();
+            else setTimeout(readyFunction, 50);
+        }, 50);
     }
     if (msg.type === "READY") channels.apiReady = true;
     if (msg.type === "TERMINATE") terminate();

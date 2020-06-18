@@ -5,6 +5,7 @@ import CircularFloatArray from "../../Util/CircularFloatArray";
 
 type IntervalName = string;
 type SymbolName = string;
+type IndicatorName = string;
 
 /** Shared data */
 export class Data {
@@ -13,12 +14,14 @@ export class Data {
     tickArrSize: number;
     ohlcSize: number;
     symbolInfo: Record<SymbolName, CircularFloatArray>
+    indicators: Record<SymbolName, Record<IntervalName, Record<IndicatorName, CircularFloatArray>>>;
 
 
     constructor() {
         this.ticks = {};
         this.ohlc = {};
         this.symbolInfo = {};
+        this.indicators = {};
         this.tickArrSize = 1000; // Save max 1000 ticks per symbol;
         this.ohlcSize = 10000; // Save max 10000 ohlcs per symbol;
     }

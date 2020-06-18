@@ -20,12 +20,18 @@ export type TradeInfo = {
     lots: number;
     price: number;
     maxSlippage: number;
+    startEquity: number;
     strategy?: string;
     profit?: number;
+    profitR?: number;
     comment?: string;
     stopLoss?: number;
     takeProfit?: number;
     isReal?: boolean;
+    isTrailing?: boolean;
+    trailingType?: string;
+    trailingMultiplier?: number;
+    lastTrailMod?: number;
 }
 
 

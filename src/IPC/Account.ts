@@ -6,8 +6,9 @@ import data from "./Data";
 import { TickEnum } from "./Data/types/Tick";
 
 const SYSTEM = {
-    MaxDrawDownPerWeek: "6%",
-    Risk: "1%",
+    maxDrawDownPerWeek: "6%",
+    /** 0.01 means 1% risk per trade */
+    riskPerTrade: 0.01,
     maxOpenRisk: "6%",
     botReactionSpeed: 10, // How many trades / time should you average the profit over
     numberOfSimultatiousStrategies: 5,
@@ -34,6 +35,8 @@ export class Account {
     updateCommission(): void {
         if (data.ticks.GBPUSDp && data.ticks.GBPUSDp.length !== 0) {
             this.setCommission(this.getBaseCommission() / data.ticks.GBPUSDp.lastVal(TickEnum.ASK));
+        } else {
+            this.setCommission(this.getBaseCommission());
         }
     }
 

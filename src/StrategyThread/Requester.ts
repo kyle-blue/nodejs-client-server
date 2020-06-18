@@ -6,7 +6,7 @@ import {
 import data from "../IPC/Data";
 import { TickEnum as Tick, TickEnum } from "../IPC/Data/types/Tick";
 import account from "../IPC/Account";
-import { SymbolInfo as SI } from "../IPC/Data/types/SymbolInfo";
+import { SymbolInfo as SI, SymbolInfo } from "../IPC/Data/types/SymbolInfo";
 import { addNewSharedArray } from "../IPC/SharedArrayFunctions";
 import channels from "../IPC/Channels";
 
@@ -49,13 +49,17 @@ class Requester implements Socket {
         this.socket = new ZmqRequest();
         this.socket.connect(`${this.protocol}://${this.ip}:${this.port}`);
         this.socket.linger = 0;
+        this.socket.receiveTimeout = 1000;
+        this.socket.sendTimeout = 100;
+
+        // this.socket.sendTimeout = 0;
+
         console.log(`Requester connected to ${this.protocol}://${this.ip}:${this.port}`);
     }
 
     getStaticInfo(): Promise<Error | void> {
         return new Promise((resolve, reject) => {
             this.socket.send(JSON.stringify({ type: "GET STATIC INFO" })).then(() => {
-                this.socket.receiveTimeout = 3000;
                 this.socket.receive().then((val) => {
                     const ret: StaticInfoReturnType = JSON.parse(val.toString());
                     const { symbols, account: accInfo } = ret;
@@ -69,9 +73,10 @@ class Requester implements Socket {
                     account.setLeverage(accInfo.leverage);
                     account.setBaseCommission(accInfo.commission);
                     account.updateCommission();
+                    resolve();
                 }).catch(() => {
                     reject(Error("Message not received within 3 seconds"));
-                }).finally(() => { this.socket.receiveTimeout = -1; });
+                });
             });
         });
     }
@@ -80,7 +85,6 @@ class Requester implements Socket {
     openTrade(tradeInfo: TradeInfo): Promise<Error | OpenTradeReturnType> {
         return new Promise((resolve, reject) => {
             this.socket.send(JSON.stringify({ type: "OPEN TRADE", data: tradeInfo })).then(() => {
-                this.socket.receiveTimeout = 3000;
                 this.socket.receive().then((val) => {
                     const ret: OpenTradeReturnType = JSON.parse(val.toString());
                     if (ret.ticket !== -1) {
@@ -90,7 +94,7 @@ class Requester implements Socket {
                     }
                 }).catch(() => {
                     reject(Error("Message not received within 3 seconds"));
-                }).finally(() => { this.socket.receiveTimeout = -1; });
+                });
             });
         });
     }
@@ -99,17 +103,16 @@ class Requester implements Socket {
     closeTrade(tradeInfo: CloseTradeInfo): Promise<Error | CloseTradeReturnType> {
         return new Promise((resolve, reject) => {
             this.socket.send(JSON.stringify({ type: "CLOSE TRADE", data: tradeInfo })).then(() => {
-                this.socket.receiveTimeout = 3000;
                 this.socket.receive().then((val) => {
                     const ret: CloseTradeReturnType = JSON.parse(val.toString());
                     if (!ret.errorCode) {
                         resolve(ret);
                     } else {
-                        reject(Error(`Error Code: ${ret.errorCode} --- ${ret.errorDesc}`));
+                        reject(Error(`${ret.errorCode}`));
                     }
                 }).catch(() => {
                     reject(Error("Message not received within 3 seconds"));
-                }).finally(() => { this.socket.receiveTimeout = -1; });
+                });
             });
         });
     }
@@ -119,17 +122,16 @@ class Requester implements Socket {
     modifyTrade(tradeInfo: ModifyTradeInfo): Promise<Error | number> {
         return new Promise((resolve, reject) => {
             this.socket.send(JSON.stringify({ type: "MODIFY TRADE", data: tradeInfo })).then(() => {
-                this.socket.receiveTimeout = 3000;
                 this.socket.receive().then((val) => {
                     const ret: ModifyTradeReturnType = JSON.parse(val.toString());
                     if (!ret.errorCode) {
                         resolve();
                     } else {
-                        reject(Error(`Error Code: ${ret.errorCode} --- ${ret.errorDesc}`));
+                        reject(Error(`${ret.errorCode}`));
                     }
                 }).catch(() => {
                     reject(Error("Message not received within 3 seconds"));
-                }).finally(() => { this.socket.receiveTimeout = -1; });
+                });
             });
         });
     }

@@ -7,15 +7,17 @@ import { SymbolInfo as SI } from "./Data/types/SymbolInfo";
 import account, { AI } from "./Account";
 
 export interface AddNewSharedArrayOptions {
-    type: "OHLC" | "TICK" | "SYMBOL INFO" | "ACCOUNT INFO"; // TODO add EMA and other indicators
+    type: "OHLC" | "TICK" | "SYMBOL INFO" | "ACCOUNT INFO" | "INDICATOR"; // TODO add EMA and other indicators
     channels: (WorkerType | MessagePortType) [];
     symbol?: string;
     interval?: string;
+    indicator?: string;
+    keys?: number[];
 }
 
 export function addNewSharedArray(options: AddNewSharedArrayOptions) {
     const {
-        type, channels, symbol, interval,
+        type, channels, symbol, interval, indicator, keys,
     } = options;
     if (type === "TICK") {
         data.ticks[symbol] = new CircularFloatArray(data.tickArrSize, Tick.BID, Tick.ASK, Tick.TIME);
@@ -59,11 +61,25 @@ export function addNewSharedArray(options: AddNewSharedArrayOptions) {
             });
         }
     }
+
+    if (type === "INDICATOR") {
+        if (!data.indicators[symbol]) data.indicators[symbol] = {};
+        if (!data.indicators[symbol][interval]) data.indicators[symbol][interval] = {};
+        data.indicators[symbol][interval][indicator] = new CircularFloatArray(
+            data.ohlcSize, ...keys,
+        );
+        const payload = data.indicators[symbol][interval][indicator].buf;
+        for (const channel of channels) {
+            channel.postMessage({
+                type: "ADD", what: "INDICATOR", symbol, interval, indicator, keys, payload,
+            });
+        }
+    }
 }
 
 export function onAdd(options: MessageType): void {
     let {
-        symbol, interval, what, payload,
+        symbol, interval, what, payload, indicator, keys,
     } = options;
     if (what === "TICK") {
         data.ticks[symbol] = new CircularFloatArray(payload, Tick.BID, Tick.ASK, Tick.TIME);
@@ -77,5 +93,12 @@ export function onAdd(options: MessageType): void {
     }
     if (what === "ACCOUNT INFO") {
         account.infoArray = new CircularFloatArray(payload, AI.EQUITY, AI.BALANCE, AI.FREE_MARGIN, AI.LEVERAGE, AI.COMMISSION, AI.BASE_COMMISSION);
+    }
+    if (what === "INDICATOR") {
+        if (!data.indicators[symbol]) data.indicators[symbol] = {};
+        if (!data.indicators[symbol][interval]) data.indicators[symbol][interval] = {};
+        data.indicators[symbol][interval][indicator] = new CircularFloatArray(
+            data.ohlcSize, ...keys,
+        );
     }
 }

@@ -3,9 +3,11 @@ import { MessagePort, Worker } from "worker_threads";
 
 export type MessageType = {
     type: "ADD" | "GET" | "TERMINATE" | "TERMINATED" | "CHANNEL" | "READY";
-    what?: "TICK" | "OHLC" | "TRADES" | "STRATEGY INFO" | "SYMBOL INFO" | "ACCOUNT INFO";
+    what?: "TICK" | "OHLC" | "TRADES" | "STRATEGY INFO" | "SYMBOL INFO" | "ACCOUNT INFO" | "INDICATOR";
     symbol?: string;
     interval? : string;
+    indicator?: string;
+    keys?: number[];
     /** This will be the buffer when adding a buffer */
     payload?: any;
 }

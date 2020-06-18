@@ -1,3 +1,4 @@
+import { start } from "repl";
 
 
 /* eslint-disable max-len */
@@ -164,10 +165,29 @@ class CircularFloatArray {
     }
 
 
-    forEach(predicate: (index: number, arr: CircularFloatArray) => (boolean | void), thisArg?: any): void {
+    /** Returning true ends the loop */
+    forEach(predicate: (index: number, arr: CircularFloatArray) => (boolean | void), thisArg?: any, startIndex?: number, endIndex?: number): void {
+        let currentLength = this.getCurrentLength();
+        predicate.bind(thisArg);
+        let first = this.getFirst();
+        let dif = 0;
+        if (startIndex !== undefined) {
+            dif = this.difference(startIndex, first);
+            first = startIndex;
+        }
+        if (endIndex !== undefined && this.getLast() !== this.getFirst()) {
+            currentLength = this.difference(endIndex, this.getFirst());
+        }
+        for (let i = dif, cur = first; i < currentLength; i++, cur = this.getIndex(cur + 1)) {
+            if (predicate(cur, this)) return;
+        }
+    }
+
+    /** Returning true ends the loop */
+    reverseForEach(predicate: (index: number, arr: CircularFloatArray) => (boolean | void), thisArg?: any): void {
         const currentLength = this.getCurrentLength();
         predicate.bind(thisArg);
-        for (let i = 0, cur = this.getFirst(); i < currentLength; i++, cur = this.getIndex(cur + 1)) {
+        for (let i = 0, cur = this.getLast(); i < currentLength; i++, cur = this.getIndex(cur - 1)) {
             if (predicate(cur, this)) return;
         }
     }
